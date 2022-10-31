@@ -10,6 +10,7 @@ from .parser import Parser
 from django.contrib import admin
 from django_object_actions import DjangoObjectActions
 
+# todo: verify the uploded file is pcap
 # todo: validate rule on pcap when clicked validate on pcap
 # todo: validate rule on pcap when clicked validate on rule
 # todo: active directory sync users
