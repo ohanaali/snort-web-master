@@ -25,6 +25,6 @@ class snort_template():
                f' name {name}, treatment {treament}, keywords None, date {date}, document {document}, desc {desc}) {self.tag}'
 
 
-class ipfull(snort_template)
+class ipfull(snort_template):
     def __init__(self):
         super(ipfull, self).__init__(src_port="any", msg="IP_RULE:{2}:IP_RULE", content)
