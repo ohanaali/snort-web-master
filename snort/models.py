@@ -1,5 +1,5 @@
 from django.db import models
-
+from pcaps.models import Pcap
 
 class SnortRule(models.Model):
     group = models.TextField(max_length=100, blank=True)
@@ -13,6 +13,7 @@ class SnortRule(models.Model):
     request_ref = models.TextField(max_length=12, blank=True)
     main_ref = models.TextField(max_length=12, blank=True)
     date = models.DateTimeField(auto_now=True)
+    pcap_validation = models.ManyToManyField(Pcap, related_name='validation_pcap', blank=True)
     objects = models.Manager()
 
     class Meta:

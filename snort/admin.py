@@ -1,3 +1,4 @@
+import os
 import time
 
 from django.contrib import admin
@@ -9,10 +10,8 @@ from .parser import Parser
 from django.contrib import admin
 from django_object_actions import DjangoObjectActions
 
-# todo: save file on save click
-# todo: save pcap file
-# todo: add pacp validation field
-# todo: validate rule on pcap when clicked validate (works only on linux)
+# todo: validate rule on pcap when clicked validate on pcap
+# todo: validate rule on pcap when clicked validate on rule
 # todo: active directory sync users
 class SnortRuleAdminForm(forms.ModelForm):
 
@@ -40,21 +39,29 @@ class SnortRuleAdminForm(forms.ModelForm):
 
         return self.cleaned_data["content"]
 
+    def clean_location(self):
+        try:
+            if os.path.dirname(self.cleaned_data["location"]) != "":
+                os.makedirs(os.path.dirname(self.cleaned_data["location"]), exist_ok=True)
+            os.makedirs(os.path.dirname(self.cleaned_data["location"]), exist_ok=True)
+            with open(self.cleaned_data["location"], "w") as rule_file:
+                rule_file.write(self.cleaned_data["content"])
+        except Exception as e:
+            forms.ValidationError(e)
+
 
 @admin.register(SnortRule)
 class SnortRuleAdmin(DjangoObjectActions, admin.ModelAdmin):
-    def publish_this(self, request, obj):
+    def validate(self, request, obj:SnortRule):
         # todo test saved rule vs pcap
-        print("Imports button pushed", obj)
-    publish_this.label = "validate"  # optional
-    publish_this.color = "green"
-    publish_this.short_description = "Submit this article"  # optional
+        print("validate button pushed", obj.name)
+    validate.label = "validate"  # optional
+    validate.color = "green"
+    validate.short_description = "Submit this article"  # optional
 
-    def make_published(modeladmin, request, queryset):
-        queryset.update(date=time.time())
 
-    change_actions = ('publish_this', )
-    changelist_actions = ('make_published',)
+    change_actions = ('validate', )
+    changelist_actions = ('validate',)
 
     list_display = ("name", "type", "template", "description", "date", "main_ref")
     search_fields = ("name", "description", "content", "template", "type", "main_ref", "request_ref")
