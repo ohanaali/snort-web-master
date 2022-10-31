@@ -38,7 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'snort',
-    'pcaps'
+    'pcaps',
+    "django_object_actions"
 ]
 
 MIDDLEWARE = [
