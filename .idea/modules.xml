@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../nadlan-master/.idea/nadlan-master.iml" filepath="$PROJECT_DIR$/../nadlan-master/.idea/nadlan-master.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/snort_web_master.iml" filepath="$PROJECT_DIR$/.idea/snort_web_master.iml" />
     </modules>
   </component>
