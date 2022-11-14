@@ -1,2 +1,4 @@
 django
 django-object-actions
+dpkt
+django-auth-ldap==1.7.0

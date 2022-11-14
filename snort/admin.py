@@ -18,7 +18,6 @@ from django.contrib import admin
 from django_object_actions import DjangoObjectActions
 import subprocess
 from django.http import HttpResponse
-# todo: verify the uploded file is pcap
 # todo: active directory sync users
 # todo: fix the sig structure
 
@@ -43,7 +42,18 @@ class SnortRuleAdminForm(forms.ModelForm):
                 raise forms.ValidationError("rule cannot be empty in the current chosen type")
             else:
                 try:
-                    Parser(self.cleaned_data["content"])
+                    rule_template = snort_type_to_template[dict(types_list)[self.cleaned_data.get("type")]]().get_rule("Test",
+                                                                                                   sig_name="Test",
+                                                                                                   sig_content=self.cleaned_data["content"],
+                                                                                                   writer_team="Test",
+                                                                                                   sig_writer="test",
+                                                                                                   main_doc="0",
+                                                                                                   cur_date=time.time(),
+                                                                                                   sig_ref="0",
+                                                                                                   sig_desc="Test")
+                    parser = Parser(rule_template)
+                    parser.parse_header()
+                    parser.parse_options()
                 except Exception as e:
                     raise forms.ValidationError(e)
 
@@ -81,12 +91,18 @@ class SnortRuleAdminForm(forms.ModelForm):
 def validate_pcap_snort(pcaps, rule):
     rule_template = snort_type_to_template[dict(types_list)[rule.type]]().get_rule(rule.group, sig_name=rule.name, sig_content=rule.content, writer_team=rule.group, sig_writer=rule.user, main_doc=rule.main_ref, cur_date=time.time(), sig_ref=rule.request_ref, sig_desc=rule.description)
     if not rule.location:
-        return
+        import re, unicodedata
+        rule.location = re.sub(r'[-\s]+', '-',re.sub(r'[^\w\s-]', '',
+                                 rule.name)
+                          .strip()
+                          .lower())
+
     with open(rule.location + ".tmp", "w") as rule_file:
         rule_file.write(rule_template)
-
     for pcap in pcaps:
         try:
+            if not verify_leagal_pcap("/app/{pcap.pcap_file}"):
+                raise Exception(f"illegal pcap file")
             if not os.path.exists(f"/app/{pcap.pcap_file}"):
                 raise Exception(f"cant find file /app/{pcap.pcap_file}")
             stdout, stderr = subprocess.Popen(["/home/snorty/snort3/bin/snort", "-R", rule.location + ".tmp", "-r", f"/app/{pcap.pcap_file}", "-A", "fast"], stdout=subprocess.PIPE,
@@ -102,6 +118,21 @@ def validate_pcap_snort(pcaps, rule):
             raise forms.ValidationError(f"could not validate rule on {pcap.pcap_file}: {e}")
         return stdout
 
+
+def verify_leagal_pcap(filename):
+    import dpkt
+    counter = 0
+
+    for ts, pkt in dpkt.pcap.Reader(open(filename, 'br')):
+
+        counter += 1
+        eth = dpkt.ethernet.Ethernet(pkt)
+        if eth.type != dpkt.ethernet.ETH_TYPE_IP:
+            continue
+
+    if not counter:
+        return False
+    return True
 
 @admin.register(SnortRule)
 class SnortRuleAdmin(DjangoObjectActions, admin.ModelAdmin):

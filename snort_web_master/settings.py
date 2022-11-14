@@ -39,7 +39,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'snort',
     'pcaps',
-    "django_object_actions"
+    "django_object_actions",
+    "django.contrib.auth.backends.ModelBackend",
+    "django_auth_ldap.backend.LDAPBackend",
+
 ]
 
 MIDDLEWARE = [
@@ -124,3 +127,20 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+# import ldap
+# from django_auth_ldap.config import LDAPSearch
+# import os
+# AUTH_LDAP_SERVER_URI = os.environ.get("LDAP_HOST")
+# AUTH_LDAP_ALWAYS_UPDATE_USER = True
+# AUTH_LDAP_BIND_DN = os.environ.get("LDAP_USERNAME")
+# AUTH_LDAP_BIND_PASSWORD = os.environ.get("LDAP_PASSWORD")
+# AUTH_LDAP_USER_SEARCH = LDAPSearch(
+#     "ou=mybiz,dc=mybiz,dc=com", ldap.SCORE.SUBTREE, "sAMAccountName=%(user)s"
+# )
+# AUTH_LDAP_USER_ATTR_MAP = {
+#     "username": "sAMAccountName",
+#     "first_name": "givenName",
+#     "last_name": "sn",
+#     "email": "mail",
+# }
+# https://coderbook.com/@marcus/how-to-add-ldap-and-active-directory-authentication-to-django/
