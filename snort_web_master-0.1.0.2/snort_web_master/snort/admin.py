@@ -1,19 +1,23 @@
 import os
 import time
 
+from django.contrib import admin
 from django import forms
 from .models import SnortRule
+from django.http import HttpResponseRedirect
 from django.utils.html import format_html
+from django.http import HttpResponseRedirect
 from urllib.parse import quote as urlquote
 from .snort_templates import snort_type_to_template, types_list, EMPTY_TYPES
 from .parser import Parser
+from django.urls import reverse
 from django.contrib import messages
 from django.utils.translation import gettext
 # Register your models here.
 from django.contrib import admin
 from django_object_actions import DjangoObjectActions
 import subprocess
-
+from django.http import HttpResponse
 # todo: active directory sync users
 # todo: fix the sig structure
 

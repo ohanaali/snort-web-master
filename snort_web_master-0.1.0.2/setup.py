@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='snort_web_master',
-    version='0.1.0.3',
+    version='0.1.0.2',
     license='MoCorp',
     author="meir dahan",
     author_email='1dahanmeir1@gmail.com',
@@ -12,7 +12,7 @@ setup(
     package_dir={'': 'snort_web_master'},
     url='https://github.com/mosheovadi1/snort-web-master',
     keywords='snort3 django',
-    include_package_data=False,
+    include_package_data=True,
     install_requires=[
           'django',
 'django-auth-ldap==1.7.0',
