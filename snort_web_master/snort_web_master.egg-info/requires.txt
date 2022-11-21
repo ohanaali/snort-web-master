@@ -1,0 +1,4 @@
+django
+django-auth-ldap==1.7.0
+django-object-actions
+dpkt
