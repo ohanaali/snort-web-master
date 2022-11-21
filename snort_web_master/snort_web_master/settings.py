@@ -40,8 +40,6 @@ INSTALLED_APPS = [
     'snort',
     'pcaps',
     "django_object_actions",
-    "django.contrib.auth.backends.ModelBackend",
-    "django_auth_ldap.backend.LDAPBackend",
 
 ]
 
@@ -127,20 +125,37 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-# import ldap
-# from django_auth_ldap.config import LDAPSearch
-# import os
-# AUTH_LDAP_SERVER_URI = os.environ.get("LDAP_HOST")
-# AUTH_LDAP_ALWAYS_UPDATE_USER = True
-# AUTH_LDAP_BIND_DN = os.environ.get("LDAP_USERNAME")
-# AUTH_LDAP_BIND_PASSWORD = os.environ.get("LDAP_PASSWORD")
-# AUTH_LDAP_USER_SEARCH = LDAPSearch(
-#     "ou=mybiz,dc=mybiz,dc=com", ldap.SCORE.SUBTREE, "sAMAccountName=%(user)s"
-# )
-# AUTH_LDAP_USER_ATTR_MAP = {
-#     "username": "sAMAccountName",
-#     "first_name": "givenName",
-#     "last_name": "sn",
-#     "email": "mail",
+# LDAP_SERVERS = [
+#     {
+#         'host': 'ldap.forumsys.com',
+#         'port': 389,
+#         'use_ssl': False,
+#         'get_info': 'NONE',
+#     }
+# ]
+# # LDAP_ENGINE = 'OpenLDAP'
+# # https://coderbook.com/@marcus/how-to-add-ldap-and-active-directory-authentication-to-django/
+# LDAP_BIND_USER = "cn=read-only-admin,dc=example,dc=com"
+# LDAP_BIND_PASSWORD = "password"
+# from ldap3 import NTLM
+# LDAP_AUTHENTICATION = NTLM
+# LDAP_SEARCH_BASE = "dc=example,dc=com"
+# LDAP_USER_SEARCH_FILTER = "(&(sAMAccountName=%s)(objectClass=user))"
+# LDAP_ATTRIBUTES_MAP = {
+#     'username': 'sAMAccountName',
+#     'first_name': 'givenName',
+#     'last_name': 'sn',
+#     'email': 'mail',
 # }
-# https://coderbook.com/@marcus/how-to-add-ldap-and-active-directory-authentication-to-django/
+# LDAP_GROUPS_MAP = {
+#     'mathematicians': "cn=read-only-admin,dc=domain,dc=com",
+# }
+# LDAP_MIN_GROUPS = ["mathematicians", ]
+# AUTHENTICATION_BACKENDS = ("django_auth_ldap3_ad.auth.LDAP3ADBackend",)
+# from django_auth_ldap3_ad.ad_users import Aduser
+#
+# adu = Aduser()
+# adu.create_ad_user(user_dn, firstname, lastname, sAMAccountName, mail=email, description=description)
+# adu.update_password_ad_user(user_dn, password)
+# adu.update_ad_user(user_dn, {'ldapAttrib1': 'value1', 'ldapAttrib2': 'value2'})
+# adu.activate_ad_user(user_dn)

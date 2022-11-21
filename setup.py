@@ -15,7 +15,7 @@ setup(
     include_package_data=False,
     install_requires=[
           'django',
-'django-auth-ldap==1.7.0',
+'django-auth-ldap3-ad',
 'django-object-actions','dpkt',
 
       ],
