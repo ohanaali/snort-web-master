@@ -1,1 +1,1 @@
-include dockerimage/snort3.tar.gz
+recursive-include data *

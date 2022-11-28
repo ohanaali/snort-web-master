@@ -14,8 +14,11 @@ from django.contrib import admin
 from django_object_actions import DjangoObjectActions
 import subprocess
 
-# todo: active directory sync users
-# todo: fix the sig structure
+from ..pcaps.admin import verify_leagal_pcap
+
+
+# todo: fix the sig structure: assitent needed
+# todo: upload unmanaged rule file
 
 class SnortRuleAdminForm(forms.ModelForm):
     class Meta:
@@ -87,7 +90,7 @@ class SnortRuleAdminForm(forms.ModelForm):
 def validate_pcap_snort(pcaps, rule):
     rule_template = snort_type_to_template[dict(types_list)[rule.type]]().get_rule(rule.group, sig_name=rule.name, sig_content=rule.content, writer_team=rule.group, sig_writer=rule.user, main_doc=rule.main_ref, cur_date=time.time(), sig_ref=rule.request_ref, sig_desc=rule.description)
     if not rule.location:
-        import re, unicodedata
+        import re
         rule.location = re.sub(r'[-\s]+', '-',re.sub(r'[^\w\s-]', '',
                                  rule.name)
                           .strip()
@@ -115,21 +118,6 @@ def validate_pcap_snort(pcaps, rule):
         return stdout
 
 
-def verify_leagal_pcap(filename):
-    import dpkt
-    counter = 0
-
-    for ts, pkt in dpkt.pcap.Reader(open(filename, 'br')):
-
-        counter += 1
-        eth = dpkt.ethernet.Ethernet(pkt)
-        if eth.type != dpkt.ethernet.ETH_TYPE_IP:
-            continue
-
-    if not counter:
-        return False
-    return True
-
 @admin.register(SnortRule)
 class SnortRuleAdmin(DjangoObjectActions, admin.ModelAdmin):
     change_actions = ('validate',)
@@ -141,7 +129,6 @@ class SnortRuleAdmin(DjangoObjectActions, admin.ModelAdmin):
 
 
     def validate(self, request, obj:SnortRule):
-        # todo test saved rule vs pcap
         error = ""
         stdout = ""
         status = messages.ERROR

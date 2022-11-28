@@ -141,6 +141,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # LDAP_AUTHENTICATION = NTLM
 # LDAP_SEARCH_BASE = "dc=example,dc=com"
 # LDAP_USER_SEARCH_FILTER = "(&(sAMAccountName=%s)(objectClass=user))"
+# LDAP_USER_MODEL_USERNAME = "id"
+# LDAP_USE_LDAP_GROUP = False
 # LDAP_ATTRIBUTES_MAP = {
 #     'username': 'sAMAccountName',
 #     'first_name': 'givenName',
@@ -150,12 +152,3 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # LDAP_GROUPS_MAP = {
 #     'mathematicians': "cn=read-only-admin,dc=domain,dc=com",
 # }
-# LDAP_MIN_GROUPS = ["mathematicians", ]
-# AUTHENTICATION_BACKENDS = ("django_auth_ldap3_ad.auth.LDAP3ADBackend",)
-# from django_auth_ldap3_ad.ad_users import Aduser
-#
-# adu = Aduser()
-# adu.create_ad_user(user_dn, firstname, lastname, sAMAccountName, mail=email, description=description)
-# adu.update_password_ad_user(user_dn, password)
-# adu.update_ad_user(user_dn, {'ldapAttrib1': 'value1', 'ldapAttrib2': 'value2'})
-# adu.activate_ad_user(user_dn)
