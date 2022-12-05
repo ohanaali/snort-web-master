@@ -1,0 +1,4 @@
+django
+django-object-actions
+dpkt
+django-auth-ldap3-ad

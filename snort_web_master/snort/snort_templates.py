@@ -12,7 +12,7 @@ class snort_template():
         tagged_tag = " tag:session,10,packets;" if tag else ""
         self.rule_string = f'alert {protocol} {src_port} any <> any {dst_port} (msg: "{msg};' \
                            f' {tagged_file_data}{tagged_content}{taggged_case_sensitive}' \
-                           f'sid:{sid}; rev:1;gid:1000000; metadata:type "{sig_type}", {metadata})'
+                           'sid:{sid}; rev:1;gid:1000000; metadata:type' + f' "{sig_type}", {metadata})'
 
     def get_rule(self, sig_group, sig_name, sig_content, writer_team, sig_writer, main_doc, cur_date, sig_ref, sig_desc, sid=0):
         sig_content = sig_content.replace("\"", "\\\"")

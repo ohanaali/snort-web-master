@@ -59,7 +59,8 @@ class SnortRuleAdminForm(forms.ModelForm):
                                                                                                    main_doc="0",
                                                                                                    cur_date=time.time(),
                                                                                                    sig_ref="0",
-                                                                                                   sig_desc="Test")
+                                                                                                   sig_desc="Test",
+                                                                                                   sid=self.current_user.id)
                     parser = Parser(rule_template)
                     parser.parse_header()
                     parser.parse_options()
