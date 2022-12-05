@@ -14,7 +14,7 @@ from django.contrib import admin
 from django_object_actions import DjangoObjectActions
 import subprocess
 
-from ..pcaps.admin import verify_leagal_pcap
+from pcaps.admin import verify_leagal_pcap
 
 
 # todo: fix the sig structure: assitent needed
@@ -24,6 +24,16 @@ class SnortRuleAdminForm(forms.ModelForm):
     class Meta:
         model = SnortRule
         fields = "__all__"
+
+    def clean_group(self):
+        return self.current_user.groups.name or "unassinged group"
+
+    def clean_user(self):
+        return getattr(self.current_user, self.current_user.USERNAME_FIELD)
+
+    def clean_date(self):
+        return self.cleaned_data["date"]
+
 
     def clean_type(self):
         if not dict(types_list).get(self.cleaned_data.get("type")):
@@ -70,6 +80,7 @@ class SnortRuleAdminForm(forms.ModelForm):
         return self.cleaned_data["location"]
 
     def clean_pcap_validation(self):
+        return self.cleaned_data.get("pcap_validation")
         if not self.cleaned_data.get("pcap_validation"):
             raise forms.ValidationError("pcap validateion cannot be empty, please find a pcap that aggre with your rule")
         cur_rule = SnortRule()
@@ -122,11 +133,14 @@ def validate_pcap_snort(pcaps, rule):
 class SnortRuleAdmin(DjangoObjectActions, admin.ModelAdmin):
     change_actions = ('validate',)
     changelist_actions = ('validate',)
-
+    filter_horizontal = ('pcap_validation',)
     list_display = ("name", "type", "description", "date", "main_ref")
     search_fields = ("name", "description", "content", "template", "type", "main_ref", "request_ref")
     form = SnortRuleAdminForm
-
+    def get_form(self, request, *args, ** kwargs):
+        form = super(SnortRuleAdmin, self).get_form(request, **kwargs)
+        form.current_user = request.user
+        return form
 
     def validate(self, request, obj:SnortRule):
         error = ""
