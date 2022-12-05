@@ -1,3 +1,0 @@
-pcaps
-snort
-snort_web_master
