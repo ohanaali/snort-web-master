@@ -101,6 +101,7 @@ class SnortRuleAdminForm(forms.ModelForm):
 
 def validate_pcap_snort(pcaps, rule):
     rule_template = snort_type_to_template[dict(types_list)[rule.type]]().get_rule(rule.group, sig_name=rule.name, sig_content=rule.content, writer_team=rule.group, sig_writer=rule.user, main_doc=rule.main_ref, cur_date=time.time(), sig_ref=rule.request_ref, sig_desc=rule.description)
+    stdout = b""
     if not rule.location:
         import re
         rule.location = re.sub(r'[-\s]+', '-',re.sub(r'[^\w\s-]', '',
@@ -110,6 +111,7 @@ def validate_pcap_snort(pcaps, rule):
 
     with open(rule.location + ".tmp", "w") as rule_file:
         rule_file.write(rule_template)
+    failed = True
     for pcap in pcaps:
         try:
             if not verify_legal_pcap("/app/{pcap.pcap_file}"):
@@ -127,13 +129,15 @@ def validate_pcap_snort(pcaps, rule):
                 raise forms.ValidationError(stderr + "<br>----------" + stdout.decode())
         except Exception as e:
             raise forms.ValidationError(f"could not validate rule on {pcap.pcap_file}: {e}")
-        return stdout
+    if failed:
+        raise Exception("no rules was chosen")
+    return stdout
 
 
 @admin.register(SnortRule)
 class SnortRuleAdmin(DjangoObjectActions, admin.ModelAdmin):
-    change_actions = ('validate',)
-    changelist_actions = ('validate',)
+    # change_actions = ('validate',)
+    # changelist_actions = ('validate',)
     filter_horizontal = ('pcap_validation',)
     list_display = ("name", "type", "description", "date", "main_ref")
     search_fields = ("name", "description", "content", "template", "type", "main_ref", "request_ref")
@@ -148,18 +152,25 @@ class SnortRuleAdmin(DjangoObjectActions, admin.ModelAdmin):
         stdout = ""
         status = messages.ERROR
         try:
-            stdout = validate_pcap_snort(obj.pcap_validation.all(), obj)
-            stdout = stdout.decode().replace('\n', '<br>')
-            status = messages.SUCCESS
-            message = "The {name} “{obj}” run validation on {pcap} with results:<br>"+ f"{stdout}"
-        except Exception as e:
-            error = e
-        if os.name =="nt":
+            snort_item = obj.first()
+        except:
+            snort_item = obj
+        if os.name == "nt":
             error = f"cannot validate on windows"
+            status = messages.ERROR
+        else:
+            try:
+                stdout = validate_pcap_snort(snort_item.pcap_validation.all(), obj)
+
+                stdout = stdout.decode().replace('\n', '<br>')
+                status = messages.SUCCESS
+                message = "The {name} “{obj}” run validation on {pcap} with results:<br>"+ f"{stdout}"
+            except Exception as e:
+                error = e
         if error:
             message = "The {name} “{obj}” failed validation on {pcap} due to ERROR:<b>{err}</b>"
         msg_dict = {
-            "name": obj._meta.verbose_name,
+            "name": snort_item._meta.verbose_name,
             "obj": format_html('<a href="{}">{}</a>', urlquote(request.path), obj),
             "pcap": "all",
             "err": error
@@ -168,11 +179,11 @@ class SnortRuleAdmin(DjangoObjectActions, admin.ModelAdmin):
             gettext(message), **msg_dict
         )
         self.message_user(request, msg, status)
-        return self.change_view(request, str(obj.id))
-    validate.label = "validate on pcaps"  # optional
-    validate.color = "green"
+        return self.change_view(request, str(snort_item.id))
+    # validate.label = "validate on pcaps"  # optional
+    # validate.color = "green"
     readonly_fields = ('location', "user")
-    validate.short_description = "test rule on pcaps"  # optional
+    # validate.short_description = "test rule on pcaps"  # optional
 
 
 

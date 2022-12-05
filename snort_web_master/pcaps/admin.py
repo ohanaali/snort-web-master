@@ -4,7 +4,7 @@ import os
 from .models import Pcap
 
 
-class pacpaAdminForm(forms.ModelForm):
+class PcapAdminForm(forms.ModelForm):
     class Meta:
         model = Pcap
         fields = "__all__"
@@ -14,7 +14,7 @@ class pacpaAdminForm(forms.ModelForm):
             if not verify_legal_pcap(self.cleaned_data.get("pcap_file")):
                 raise Exception(f"illegal pcap file")
         except Exception as e:
-            raise forms.ValidationError(f"cant validate pacp file: {e}")
+            raise forms.ValidationError(f"cant validate pcap file: {e}")
 
         old_pcap_file = self.initial.get("pcap_file").url if hasattr(self.initial.get("pcap_file"), "url") else ""
         delete_old = False
@@ -28,18 +28,18 @@ class pacpaAdminForm(forms.ModelForm):
             os.remove(self.initial.get("pcap_file").url)
         return self.cleaned_data.get("pcap_file")
 
+
 @admin.register(Pcap)
-class SnortRuleAdmin( admin.ModelAdmin):
-    def validate(self, request, obj:Pcap):
+class SnortRuleAdmin(admin.ModelAdmin):
+    def validate(self, request, obj: Pcap):
         # todo test saved rule vs pcap
         print("validate button pushed", obj.name)
-    validate.label = "validate"  # optional
-    validate.color = "green"
-    validate.short_description = "Submit this article"  # optional
+    # validate.label = "validate"  # optional
+    # validate.color = "green"
+    # validate.short_description = "Submit this article"  # optional
 
-
-    change_actions = ('validate', )
-    changelist_actions = ('validate',)
+    # change_actions = ('validate', )
+    # changelist_actions = ('validate',)
 
     list_display = ("name", "description", "pcap_file", "rule_to_validate", "date")
     search_fields = ("name", "description", "pcap_file", "rule_to_validate")
