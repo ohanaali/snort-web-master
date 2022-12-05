@@ -10,17 +10,16 @@ class snort_template():
                    ' treatment "{main_doc}", keywords "None", date "{date}", document "{sig_ref}",' \
                    ' description "{sig_desc}"'
         tagged_tag = " tag:session,10,packets;" if tag else ""
-        sid = "{sid}"
         self.rule_string = f'alert {protocol} {src_port} any <> any {dst_port} (msg: "{msg};' \
                            f' {tagged_file_data}{tagged_content}{taggged_case_sensitive}' \
                            f'sid:{sid}; rev:1;gid:1000000; metadata:type "{sig_type}", {metadata})'
 
-    def get_rule(self, sig_group, sig_name, sig_content, writer_team, sig_writer, main_doc, cur_date, sig_ref, sig_desc):
+    def get_rule(self, sig_group, sig_name, sig_content, writer_team, sig_writer, main_doc, cur_date, sig_ref, sig_desc, sid=0):
         sig_content = sig_content.replace("\"", "\\\"")
         sig_desc = sig_desc.replace("\"", "\\\"")
         return self.rule_string.format(**{"sig_group": sig_group, "sig_name": sig_name, "sig_content": sig_content,
                                         "writer_team": writer_team, "sig_writer": sig_writer, "main_doc": main_doc,
-                                        "date": cur_date, "sig_ref": sig_ref, "sig_desc": sig_desc, "sid": "{sid}"})
+                                        "date": cur_date, "sig_ref": sig_ref, "sig_desc": sig_desc, "sid": f"{sid}"})
 
 
 class Preprocessor(snort_template):

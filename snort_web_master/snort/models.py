@@ -3,6 +3,7 @@ from pcaps.models import Pcap
 from .snort_templates import types_list
 
 class SnortRule(models.Model):
+    id = models.AutoField(primary_key=True)
     group = models.CharField(max_length=100, blank=True)
     user = models.CharField(max_length=100, blank=True, default=0)
     name = models.CharField(max_length=100)
