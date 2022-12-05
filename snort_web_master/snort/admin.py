@@ -81,7 +81,7 @@ class SnortRuleAdminForm(forms.ModelForm):
         return self.cleaned_data["location"]
 
     def clean_pcap_validation(self):
-        return self.cleaned_data.get("pcap_validation")
+        # return self.cleaned_data.get("pcap_validation")
         if not self.cleaned_data.get("pcap_validation"):
             raise forms.ValidationError("pcap validateion cannot be empty, please find a pcap that aggre with your rule")
         cur_rule = SnortRule()
