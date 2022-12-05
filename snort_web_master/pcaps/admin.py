@@ -11,7 +11,7 @@ class pacpaAdminForm(forms.ModelForm):
 
     def clean_pcap_file(self):
         try:
-            if not verify_leagal_pcap(self.cleaned_data.get("pcap_file")):
+            if not verify_legal_pcap(self.cleaned_data.get("pcap_file")):
                 raise Exception(f"illegal pcap file")
         except Exception as e:
             raise forms.ValidationError(f"cant validate pacp file: {e}")
@@ -46,7 +46,7 @@ class SnortRuleAdmin( admin.ModelAdmin):
     # form = SnortRuleAdminForm
 
 
-def verify_leagal_pcap(filename):
+def verify_legal_pcap(filename):
     import dpkt
     counter = 0
 

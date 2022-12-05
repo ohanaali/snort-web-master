@@ -14,7 +14,7 @@ from django.contrib import admin
 from django_object_actions import DjangoObjectActions
 import subprocess
 
-from pcaps.admin import verify_leagal_pcap
+from pcaps.admin import verify_legal_pcap
 
 
 # todo: fix the sig structure: assitent needed
@@ -112,7 +112,7 @@ def validate_pcap_snort(pcaps, rule):
         rule_file.write(rule_template)
     for pcap in pcaps:
         try:
-            if not verify_leagal_pcap("/app/{pcap.pcap_file}"):
+            if not verify_legal_pcap("/app/{pcap.pcap_file}"):
                 raise Exception(f"illegal pcap file")
             if not os.path.exists(f"/app/{pcap.pcap_file}"):
                 raise Exception(f"cant find file /app/{pcap.pcap_file}")
