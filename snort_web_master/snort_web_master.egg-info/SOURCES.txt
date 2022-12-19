@@ -6,6 +6,7 @@ setup.py
 data/db.sqlite3
 data/dicts.py
 data/my-snort-rule.tmp
+data/requirements.txt
 snort_web_master/pcaps/__init__.py
 snort_web_master/pcaps/admin.py
 snort_web_master/pcaps/apps.py

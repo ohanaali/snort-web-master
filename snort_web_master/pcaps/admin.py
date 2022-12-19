@@ -32,7 +32,7 @@ class PcapAdminForm(forms.ModelForm):
 @admin.register(Pcap)
 class SnortRuleAdmin(admin.ModelAdmin):
     def validate(self, request, obj: Pcap):
-        # todo test saved rule vs pcap
+        # test saved rule vs pcap
         print("validate button pushed", obj.name)
     # validate.label = "validate"  # optional
     # validate.color = "green"

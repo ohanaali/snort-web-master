@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'snort',
     'pcaps',
     "django_object_actions",
+    "settings",
 
 ]
 
