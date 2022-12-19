@@ -9,6 +9,7 @@ from .snort_templates import snort_type_to_template, types_list, EMPTY_TYPES
 from .parser import Parser
 from django.contrib import messages
 from django.utils.translation import gettext
+from django.utils.html import mark_safe
 # Register your models here.
 from django.contrib import admin
 from django_object_actions import DjangoObjectActions
@@ -172,6 +173,7 @@ class SnortRuleAdminForm(forms.ModelForm):
 def validate_pcap_snort(pcaps, rule):
     rule_template = snort_type_to_template[dict(types_list)[rule.type]]().get_rule(rule.group.name, sig_name=rule.name, sig_content=rule.content, writer_team=rule.group, sig_writer=rule.user, main_doc=rule.main_ref, cur_date=time.time(), sig_ref=rule.request_ref, sig_desc=rule.description)
     stdout = b""
+
     if not rule.location:
         import re
         rule.location = re.sub(r'[-\s]+', '-',re.sub(r'[^\w\s-]', '',
@@ -204,20 +206,46 @@ def validate_pcap_snort(pcaps, rule):
 
 @admin.register(SnortRule)
 class SnortRuleAdmin(DjangoObjectActions, admin.ModelAdmin):
-    # change_actions = ('validate',)
-    # changelist_actions = ('validate',)
-    fields = ("active", "admin_locked", 'name', "request_ref", "main_ref", "description", "group", 'type', "content", "extra", "location", "user", 'pcap_sanity_check', "pcap_legal_check")
+    change_actions = ('load_template',)
+    changelist_actions = ('load_template',)
+    fields = ("full_rule", "active", "admin_locked", 'name', "template", "request_ref", "main_ref", "description", "group", 'type', "content", "extra", "location", "user", 'pcap_sanity_check', "pcap_legal_check")
     filter_horizontal = ('pcap_sanity_check', "pcap_legal_check")
     list_display_links = ("name", )
     list_display = ("id", "name", "group", "type", "description", "date", "main_ref")
     search_fields = ("active", 'name', "request_ref", "main_ref", "description", "group", 'type', "content", "extra", "location", "user")
     form = SnortRuleAdminForm
+
+    def selected_template(self, obj):
+        return self.load_template(self, obj)
+    def full_rule(self, obj):
+        test = mark_safe("""</div><script>
+var intervalId = window.setInterval(function(){
+  const Http = new XMLHttpRequest();
+  var content = document.getElementsByName("content")[0].value;
+  var e = document.getElementsByClassName("form-row field-type")[0].childNodes[1].childNodes[3];
+var value = e.value;
+var selected_template = e.options[e.selectedIndex].text;
+  var x=document.getElementsByClassName("form-row field-full_rule");  // Find the elements
+    for(var i = 0; i < x.length; i++){
+    x[i].innerText=content ;   
+    }
+}, 1000);
+
+
+</script>""")
+        rule = obj
+        full_rule = snort_type_to_template[dict(types_list)[rule.type]]().get_rule(rule.group.name, sig_name=rule.name,
+                                                                       sig_content=rule.content, writer_team=rule.group,
+                                                                       sig_writer=rule.user, main_doc=rule.main_ref,
+                                                                       cur_date=time.time(), sig_ref=rule.request_ref,
+                                                                       sig_desc=rule.description)
+        return test
     def get_form(self, request, *args, ** kwargs):
         form = super(SnortRuleAdmin, self).get_form(request, **kwargs)
         form.current_user = request.user
         return form
 
-    def validate(self, request, obj:SnortRule):
+    def load_template(self, request, obj:SnortRule):
         error = ""
         stdout = ""
         status = messages.ERROR
@@ -225,35 +253,15 @@ class SnortRuleAdmin(DjangoObjectActions, admin.ModelAdmin):
             snort_item = obj.first()
         except:
             snort_item = obj
-        if os.name == "nt":
-            error = f"cannot validate on windows"
-            status = messages.ERROR
-        else:
-            try:
-                stdout = validate_pcap_snort(snort_item.pcap_sanity_check.all(), obj)
-
-                stdout = stdout.decode().replace('\n', '<br>')
-                status = messages.SUCCESS
-                message = "The {name} “{obj}” run validation on {pcap} with results:<br>"+ f"{stdout}"
-            except Exception as e:
-                error = e
-        if error:
-            message = "The {name} “{obj}” failed validation on {pcap} due to ERROR:<b>{err}</b>"
-        msg_dict = {
-            "name": snort_item._meta.verbose_name,
-            "obj": format_html('<a href="{}">{}</a>', urlquote(request.path), obj),
-            "pcap": "all",
-            "err": error
-        }
-        msg = format_html(
-            gettext(message), **msg_dict
-        )
-        self.message_user(request, msg, status)
-        return self.change_view(request, str(snort_item.id))
-    # validate.label = "validate on pcaps"  # optional
+        template_content = snort_type_to_template[dict(types_list)[obj.type]]().rule_string
+            # (obj.name,sig_name=obj.name,sig_content=obj.content,writer_team=obj.group.name,sig_writer=obj.user,main_doc=obj.main_ref,cur_date=time.time(),sig_ref=obj.request_ref,sig_desc=obj.description,sid=obj.id)
+        obj.template = template_content
+        obj.save()
+        # return template_content
+    load_template.label = "load template"  # optional
     # validate.color = "green"
-    readonly_fields = ('location', "user", "admin_locked")
-    # validate.short_description = "test rule on pcaps"  # optional
+    readonly_fields = ('location', "user", "admin_locked", "full_rule")
+    load_template.short_description = "load template to edit view"  # optional
 
 
 

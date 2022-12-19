@@ -1,5 +1,4 @@
 from django.db import models
-from pcaps.models import Pcap
 from settings.models import attackGroup
 from .snort_templates import types_list
 
@@ -18,8 +17,9 @@ class SnortRule(models.Model):
     request_ref = models.CharField(max_length=12, blank=True)
     main_ref = models.CharField(max_length=12, blank=True)
     date = models.DateTimeField(auto_now=True)
-    pcap_sanity_check = models.ManyToManyField(Pcap, related_name='pcap_sanity_check', blank=True)
-    pcap_legal_check = models.ManyToManyField(Pcap, related_name='pcap_legal_check', blank=True)
+    template = models.TextField(max_length=512, blank=True)
+    pcap_sanity_check = models.ManyToManyField("pcaps.Pcap", related_name='pcap_sanity_check', blank=True)
+    pcap_legal_check = models.ManyToManyField("pcaps.white_Pcap", related_name='pcap_legal_check', blank=True)
     objects = models.Manager()
 
     class Meta:
