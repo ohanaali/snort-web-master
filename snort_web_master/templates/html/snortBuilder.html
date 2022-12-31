@@ -1,0 +1,200 @@
+<script>
+
+ function checkip(check, err) {
+   var ip_label = document.getElementById(check);
+ if((!(/^any$|^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/[0-9][0-9]?$/).test(ip_label.value)))
+  {
+    var ip_label = document.getElementById(err)
+    ip_label.innerHTML ="bad ip structur should be x.x.x.x/x";
+    ip_label.style.color = "red"
+  }
+  else
+  {
+  var ip_label = document.getElementById(err).innerHTML="";
+  }
+
+};
+
+function checkport(check, err) {
+   var port_lable = document.getElementById(check);
+ if((!(/^any$|^((6553[0-5])|(655[0-2][0-9])|(65[0-4][0-9]{2})|(6[0-4][0-9]{3})|([1-5][0-9]{4})|([0-5]{0,5})|([0-9]{1,4}))(:((6553[0-5])|(655[0-2][0-9])|(65[0-4][0-9]{2})|(6[0-4][0-9]{3})|([1-5][0-9]{4})|([0-5]{0,5})|([0-9]{1,4})))?$/).test(port_lable.value)))
+  {
+    var port_lable = document.getElementById(err)
+    port_lable.innerHTML ="bad port number: must be a valid port or port range ";
+    port_lable.style.color = "red"
+  }
+  else
+  {
+  var port_lable = document.getElementById(err).innerHTML="";
+  }
+
+};
+
+</script>
+
+<script>
+    function load_protocol(){
+const url_protocol="/settings/keywords/?stage=protocol&avalable=True";
+  const Http = new XMLHttpRequest();
+Http.open("GET", url_protocol);
+Http.responseType = "document";
+Http.send();
+Http.onreadystatechange = (e) => {
+    var selection = document.getElementById("protocol");
+    if (Http.responseXML!==null){
+    var els = Http.responseXML.getElementsByClassName("field-name")
+   var i, L = selection.options.length - 1;
+   for(i = L; i >= 0; i--) {
+      selection.remove(i);
+   }
+        let opt = document.createElement('option');
+        opt.value = "----";
+        opt.textContent += "----"
+        selection.appendChild(opt);
+    Array.prototype.forEach.call(els, function(el) {
+        // Do stuff here
+        let opt = document.createElement('option');
+        opt.value = el.textContent;
+        opt.textContent += el.textContent
+        selection.appendChild(opt);
+    });
+
+};
+
+}}
+
+var i = 0;
+var j = {};
+function add_options_new_keyword(url, input_name, rule_form, plus, current_index_i, add_j = false){
+    if (add_j){
+        input_name = input_name + current_index_i + "-" + j[current_index_i];
+        var input3 = document.createElement("select");
+        input3.onchange = function(){alert(input.options[input.selectedIndex].text)};
+        input3.type = "select";
+        input3.name = input_name;
+        input3.id = input_name;
+        let opt = document.createElement('option');
+        opt.value = "-----";
+        opt.textContent += "-----"
+        input3.appendChild(opt);
+        rule_form.insertBefore(input3, plus);
+
+        j[current_index_i] = j[current_index_i] + 1;
+    }
+    const Http = new XMLHttpRequest();
+    Http.open("GET", url);
+    Http.responseType = "document";
+    Http.send();
+    Http.onreadystatechange = (e) => {
+        console.log(e)
+        if (Http.responseXML!==null){
+            var input = document.getElementById(input_name);
+            var els = Http.responseXML.getElementsByClassName("field-name")
+            Array.prototype.forEach.call(els, function(el) {
+                console.log(el.textContent)
+                let opt = document.createElement('option');
+                opt.value = el.textContent;
+                opt.textContent += el.textContent
+                input.appendChild(opt);
+            });
+            var input = document.createElement("input");
+        }
+    }
+}
+function add_option_keyword(){
+    j[i] = 0
+    const url_content_modifiers="/settings/keywords/?stage=Content Modifiers&avalable=True";
+    var plus = document.createElement("img");
+    plus.src = "/static/admin/img/icon-addlink.svg"
+    var input_id3 = "keyword";
+    var rule_form = document.getElementById("ruleform");
+    var current_i = i;
+    plus.onclick = function(){add_options_new_keyword(url_content_modifiers, input_id3, rule_form, plus, current_i, true)};
+    var br = document.createElement("br");
+    rule_form.appendChild(plus);
+    rule_form.appendChild(br);
+    // create new option(keyword)
+    var input = document.createElement("select");
+    var input_id = "keyword_selection"+ i;
+    input.id = input_id;
+    input.type = "select";
+    input.name = input_id;
+    let opt = document.createElement('option');
+    opt.value = "-----";
+    opt.textContent += "-----"
+    input.appendChild(opt);
+    input.onchange = function(){alert(input.options[input.selectedIndex].text)};
+    //get option values
+    const url_options="/settings/keywords/?stage=options&avalable=True";
+
+    add_options_new_keyword(url_options, input_id, null, null, null)
+    // add option to form
+    rule_form.insertBefore(input, plus);
+    //var input2 = document.createElement("input");
+    //input2.type = "text";
+    //input2.name = input_id3 + j[i];
+    //input2.id = input_id3 + j[i];
+    //rule_form.insertBefore(input2, plus);
+    j[i] = j[i] + 1;
+    //console.log(j[i])
+
+    //add aditional options
+
+    add_options_new_keyword(url_content_modifiers, input_id3, rule_form, plus, current_i, true)
+    console.log(j[i])
+    i = i + 1;
+}
+</script>
+    <select id="action" name="action" class="action-dropdown" >
+        <option value="----">----</option>
+        {% for action in actions %}
+            <option value="{{ action.name}}">{{ action.name }}</option>
+        {% endfor %}
+    </select>
+    <select id="protocol" name="protocol" class="protocol-dropdown"  >
+        <option value="----">----</option>
+        {% for protocol in protocols %}
+            <option value="{{ protocol.name}}">{{ protocol.name }}</option>
+        {% endfor %}
+    </select>
+    <select id="srcipallow" name="srcipallow" class="srcipallow-dropdown"  >
+        <option value="----">----</option>
+        <option value="!">!</option>
+    </select>
+    <lable id="srciperror"></lable>
+
+    <input id="srcip" name="srcip" onfocusout="checkip('srcip', 'srciperror')" class="srcip-text"   />
+
+    <select id="srcportallow" name="srcportallow" class="srcportallow-dropdown"  >
+        <option value="----">----</option>
+        <option value="!">!</option>
+    </select>
+    <lable id="srcporterror"></lable>
+    <input id="srcport" name="srcpprt" onfocusout="checkport('srcport', 'srcporterror')" class="srcport-text"   />
+
+    <select id="direction" name="direction" class="direction-dropdown"  >
+        <option value="->">-></option>
+        <option value="<>"><></option>
+    </select>
+    <select id="dstipallow" name="dstipallow" class="srcipallow-dropdown"  >
+        <option value="----">----</option>
+        <option value="!">!</option>
+    </select>
+    <lable id="dstiperror"></lable>
+    <input id="dstip" name="srcip" onfocusout="checkip('dstip', 'dstiperror')" class="dstip-dropdown"   />
+
+    <select id="dstportallow" name="dstportallow" class="srcportallow-dropdown"  >
+        <option value="----">----</option>
+        <option value="!">!</option>
+    </select>
+    <lable id="dstporterror"></lable>
+
+    <input id="dstport" name="dstport" onfocusout="checkport('dstport', 'dstporterror')"  class="dstport-text"   />
+    <br>
+<div id="ruleform">
+
+
+</div>
+    <img type="image" src="/static/admin/img/icon-addlink.svg" name="add option" onclick="add_option_keyword();">
+
+

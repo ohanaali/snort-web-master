@@ -14,8 +14,8 @@ from django.utils.html import mark_safe
 from django.contrib import admin
 from django_object_actions import DjangoObjectActions
 import subprocess
-from settings.models import Setting
-
+from settings.models import Setting, keywords
+from django.shortcuts import render
 from pcaps.admin import verify_legal_pcap
 
 
@@ -208,28 +208,68 @@ def validate_pcap_snort(pcaps, rule):
 class SnortRuleAdmin(DjangoObjectActions, admin.ModelAdmin):
     change_actions = ('load_template',)
     changelist_actions = ('load_template',)
-    fields = ("full_rule", "active", "admin_locked", 'name', "template", "request_ref", "main_ref", "description", "group", 'type', "content", "extra", "location", "user", 'pcap_sanity_check', "pcap_legal_check")
+    fields = ("id", "full_rule", "active", "admin_locked", 'name', "snort_builder", "request_ref", "main_ref", "description", "group", "extra", "location", "user", 'pcap_sanity_check', "pcap_legal_check")
     filter_horizontal = ('pcap_sanity_check', "pcap_legal_check")
     list_display_links = ("name", )
-    list_display = ("id", "name", "group", "type", "description", "date", "main_ref")
-    search_fields = ("active", 'name', "request_ref", "main_ref", "description", "group", 'type', "content", "extra", "location", "user")
+    list_display = ("id", "name", "group", "description", "date", "main_ref")
+    search_fields = ("active", 'name', "request_ref", "main_ref", "description", "group", "content", "extra", "location", "user")
     form = SnortRuleAdminForm
 
     def selected_template(self, obj):
         return self.load_template(self, obj)
+
+    def snort_builder(self, obj):
+        return mark_safe(self.snort_buider_section.content.decode("utf-8"))
+
     def full_rule(self, obj):
         test = mark_safe("""</div><script>
+        var date_now = Date.now() 
 var intervalId = window.setInterval(function(){
-  const Http = new XMLHttpRequest();
-  var content = document.getElementsByName("content")[0].value;
-  var e = document.getElementsByClassName("form-row field-type")[0].childNodes[1].childNodes[3];
-var value = e.value;
-var selected_template = e.options[e.selectedIndex].text;
+  var sigid = document.getElementsByClassName("form-row field-id")[0].innerText.split("\\n")[1];
+  var user_name = document.getElementsByClassName("form-row field-user")[0].innerText.split("\\n")[1];
+  var action = document.getElementById("action").value;
+  var protocol = document.getElementById("protocol").value;
+  var srcipallow = document.getElementById("srcipallow").value;
+  srcipallow = (srcipallow==="----")? "" : srcipallow
+  var srcip = document.getElementById("srcip").value;
+  srcip = (srcip==="")? "any" : srcip
+  var srcport = document.getElementById("srcport").value;
+  srcport = (srcport==="")? "any" : srcport
+  var srcportallow = document.getElementById("srcportallow").value;
+  srcportallow = (srcportallow==="----")? "" : srcportallow
+  var direction = document.getElementById("direction").value;
+  var dstipallow = document.getElementById("dstipallow").value;
+  dstipallow = (dstipallow==="----")? "" : dstipallow
+  var dstip = document.getElementById("dstip").value;
+  dstip = (dstip==="")? "any" : dstip
+  var dstport = document.getElementById("dstport").value;
+  dstport = (dstport==="")? "any" : dstport
+  var dstportallow = document.getElementById("dstportallow").value;
+  dstportallow = (dstportallow==="----")? "" : dstportallow
+  var group = document.getElementById("id_group")[document.getElementById("id_group").value];
+  var name = document.getElementById("id_name").value;
+  var id_request_ref  = document.getElementById("id_request_ref").value;
+  var id_main_ref = document.getElementById("id_main_ref").value;
+  var id_description = document.getElementById("id_description").value;
+  content = "<content>";
+  if (document.getElementById("id_group")[document.getElementById("id_group").value]!==undefined)
+  {
+   group = group.text;
+  }
+  else
+  {
+  group = "";
+  }
   var x=document.getElementsByClassName("form-row field-full_rule");  // Find the elements
     for(var i = 0; i < x.length; i++){
-    x[i].innerText=content ;   
+    x[i].innerText=action + " " + protocol + " " + srcipallow + srcip +" " +srcportallow+ srcport + " " + direction 
+    + " " + dstipallow + dstip + " " +dstportallow+ dstport
+     + "(msg:"+ group+ " " +name+ ";" + content +";"+ 
+     "sid:" +sigid +"; metadata: 'employee "+ user_name+", group " + group + ", name " + name +", treatment "+
+     id_main_ref+", keywords 'None', date "+date_now+", document " + id_request_ref + 
+     ",' description "+id_description+"';)";   
     }
-}, 1000);
+}, 5000);
 
 
 </script>""")
@@ -243,6 +283,9 @@ var selected_template = e.options[e.selectedIndex].text;
     def get_form(self, request, *args, ** kwargs):
         form = super(SnortRuleAdmin, self).get_form(request, **kwargs)
         form.current_user = request.user
+        context = {"actions": keywords.objects.filter(stage="action", avalable="True"),
+                   "protocols": keywords.objects.filter(stage="protocol", avalable="True")}
+        self.snort_buider_section = render(request, "html/snortBuilder.html", context)
         return form
 
     def load_template(self, request, obj:SnortRule):
@@ -260,7 +303,7 @@ var selected_template = e.options[e.selectedIndex].text;
         # return template_content
     load_template.label = "load template"  # optional
     # validate.color = "green"
-    readonly_fields = ('location', "user", "admin_locked", "full_rule")
+    readonly_fields = ("id", 'location', "user", "admin_locked", "full_rule", "snort_builder")
     load_template.short_description = "load template to edit view"  # optional
 
 
