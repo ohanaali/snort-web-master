@@ -62,14 +62,53 @@ Http.onreadystatechange = (e) => {
 };
 
 }}
+// todo: edit function to add get keywork option/ keyword modifier by name
+// todo: on change this function is caled, need to delete text box after object if exists
+
+function add_text_box_if_needed(input_id, selection, current_index_i, item_index)
+{
+    if(item_index===0){
+        Array.prototype.forEach.call(plus_dict[current_index_i].slice(1), function(elem) {
+        elem.remove()
+        });
+        plus_dict[current_index_i][0].style.visibility = "hidden";
+        plus_dict[current_index_i] = plus_dict[current_index_i].slice(0,1)
+    }
+    const url_content_modifiers="/settings/keywords/?name=" + selection;
+    const Http = new XMLHttpRequest();
+    Http.open("GET", url_content_modifiers);
+    Http.responseType = "document";
+    Http.send();
+    Http.onreadystatechange = (e) => {
+        console.log(e)
+        if (Http.responseXML!==null){
+            var input = document.getElementById(input_id);
+            if (Http.responseXML.getElementsByClassName("field-options")[0] === undefined){return};
+            var els = Http.responseXML.getElementsByClassName("field-options")[0].textContent
+
+            console.log(els)
+            Array.prototype.forEach.call(els.split(","), function(splited) {
+                if (splited==="string"||splited==="int"){
+                    var newElem = document.createElement("input");
+                    input.insertAdjacentElement("afterend", newElem);
+                    plus_dict[current_index_i].push(newElem);
+                    plus_dict[current_index_i][0].style.visibility = "visible";
+                    }
+            });
+        }
+    }
+}
+
 
 var i = 0;
 var j = {};
+var keyword_dict = {};
+var plus_dict = {};
 function add_options_new_keyword(url, input_name, rule_form, plus, current_index_i, add_j = false){
     if (add_j){
         input_name = input_name + current_index_i + "-" + j[current_index_i];
         var input3 = document.createElement("select");
-        input3.onchange = function(){alert(input.options[input.selectedIndex].text)};
+        input3.onchange = function(){add_text_box_if_needed(input_name, input3.options[input3.selectedIndex].text, current_index_i, j[current_index_i])};
         input3.type = "select";
         input3.name = input_name;
         input3.id = input_name;
@@ -105,6 +144,7 @@ function add_option_keyword(){
     j[i] = 0
     const url_content_modifiers="/settings/keywords/?stage=Content Modifiers&avalable=True";
     var plus = document.createElement("img");
+    plus_dict[i] = [plus]
     plus.src = "/static/admin/img/icon-addlink.svg"
     var input_id3 = "keyword";
     var rule_form = document.getElementById("ruleform");
@@ -112,7 +152,7 @@ function add_option_keyword(){
     plus.onclick = function(){add_options_new_keyword(url_content_modifiers, input_id3, rule_form, plus, current_i, true)};
     var br = document.createElement("br");
     rule_form.appendChild(plus);
-    rule_form.appendChild(br);
+    plus.style.visibility = "hidden";
     // create new option(keyword)
     var input = document.createElement("select");
     var input_id = "keyword_selection"+ i;
@@ -123,24 +163,25 @@ function add_option_keyword(){
     opt.value = "-----";
     opt.textContent += "-----"
     input.appendChild(opt);
-    input.onchange = function(){alert(input.options[input.selectedIndex].text)};
+    input.onchange = function(){add_text_box_if_needed(input_id, input.options[input.selectedIndex].text, current_i, j[current_i])};
     //get option values
     const url_options="/settings/keywords/?stage=options&avalable=True";
 
     add_options_new_keyword(url_options, input_id, null, null, null)
     // add option to form
     rule_form.insertBefore(input, plus);
+    rule_form.appendChild(br);
     //var input2 = document.createElement("input");
     //input2.type = "text";
     //input2.name = input_id3 + j[i];
     //input2.id = input_id3 + j[i];
     //rule_form.insertBefore(input2, plus);
-    j[i] = j[i] + 1;
+    //j[i] = j[i] + 1;
     //console.log(j[i])
 
     //add aditional options
 
-    add_options_new_keyword(url_content_modifiers, input_id3, rule_form, plus, current_i, true)
+    //add_options_new_keyword(url_content_modifiers, input_id3, rule_form, plus, current_i, true)
     console.log(j[i])
     i = i + 1;
 }
@@ -196,5 +237,6 @@ function add_option_keyword(){
 
 </div>
     <img type="image" src="/static/admin/img/icon-addlink.svg" name="add option" onclick="add_option_keyword();">
+
 
 
