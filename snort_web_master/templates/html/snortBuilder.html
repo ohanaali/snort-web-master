@@ -2,7 +2,7 @@
 
  function checkip(check, err) {
    var ip_label = document.getElementById(check);
- if((!(/^any$|^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/[0-9][0-9]?$/).test(ip_label.value)))
+ if((!(/^\$.*|^any$|^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/[0-9][0-9]?$/).test(ip_label.value)))
   {
     var ip_label = document.getElementById(err)
     ip_label.innerHTML ="bad ip structur should be x.x.x.x/x";
@@ -17,7 +17,7 @@
 
 function checkport(check, err) {
    var port_lable = document.getElementById(check);
- if((!(/^any$|^((6553[0-5])|(655[0-2][0-9])|(65[0-4][0-9]{2})|(6[0-4][0-9]{3})|([1-5][0-9]{4})|([0-5]{0,5})|([0-9]{1,4}))(:((6553[0-5])|(655[0-2][0-9])|(65[0-4][0-9]{2})|(6[0-4][0-9]{3})|([1-5][0-9]{4})|([0-5]{0,5})|([0-9]{1,4})))?$/).test(port_lable.value)))
+ if((!(/^\$.*|^any$|^((6553[0-5])|(655[0-2][0-9])|(65[0-4][0-9]{2})|(6[0-4][0-9]{3})|([1-5][0-9]{4})|([0-5]{0,5})|([0-9]{1,4}))(:((6553[0-5])|(655[0-2][0-9])|(65[0-4][0-9]{2})|(6[0-4][0-9]{3})|([1-5][0-9]{4})|([0-5]{0,5})|([0-9]{1,4})))?$/).test(port_lable.value)))
   {
     var port_lable = document.getElementById(err)
     port_lable.innerHTML ="bad port number: must be a valid port or port range ";
@@ -62,17 +62,33 @@ Http.onreadystatechange = (e) => {
 };
 
 }}
-// todo: edit function to add get keywork option/ keyword modifier by name
-// todo: on change this function is caled, need to delete text box after object if exists
+// todo: show content in snort rule object be strawling over the form, and creating a list to describe the form
+// todo: load template??? think about button,
+// todo: form need to automaticly load from list saved in object content,
+
 
 function add_text_box_if_needed(input_id, selection, current_index_i, item_index)
 {
-    if(item_index===0){
+    if(input_id.startsWith('keyword_selection')){
         Array.prototype.forEach.call(plus_dict[current_index_i].slice(1), function(elem) {
-        elem.remove()
+            try{
+                elem.remove()
+            }
+            catch (error) {
+                elem.forEach(el => {
+                    el.remove()
+                });
+            }
         });
         plus_dict[current_index_i][0].style.visibility = "hidden";
         plus_dict[current_index_i] = plus_dict[current_index_i].slice(0,1)
+    }
+    else
+    {
+        Array.prototype.forEach.call(plus_dict[input_id], function(elem) {
+            elem.remove()
+        });
+        plus_dict[input_id] = []
     }
     const url_content_modifiers="/settings/keywords/?name=" + selection;
     const Http = new XMLHttpRequest();
@@ -80,19 +96,23 @@ function add_text_box_if_needed(input_id, selection, current_index_i, item_index
     Http.responseType = "document";
     Http.send();
     Http.onreadystatechange = (e) => {
-        console.log(e)
         if (Http.responseXML!==null){
             var input = document.getElementById(input_id);
             if (Http.responseXML.getElementsByClassName("field-options")[0] === undefined){return};
             var els = Http.responseXML.getElementsByClassName("field-options")[0].textContent
-
-            console.log(els)
             Array.prototype.forEach.call(els.split(","), function(splited) {
                 if (splited==="string"||splited==="int"){
                     var newElem = document.createElement("input");
+                    newElem.name = newElem.id = input_id + "-" + "data"
                     input.insertAdjacentElement("afterend", newElem);
-                    plus_dict[current_index_i].push(newElem);
-                    plus_dict[current_index_i][0].style.visibility = "visible";
+                    if (plus_dict[input_id] === undefined){
+                        plus_dict[current_index_i].push(newElem);
+                        plus_dict[current_index_i][0].style.visibility = "visible";
+                    }
+                    else{
+                        plus_dict[input_id].push(newElem);
+                        plus_dict[current_index_i].push(plus_dict[input_id]);
+                    }
                     }
             });
         }
@@ -108,7 +128,9 @@ function add_options_new_keyword(url, input_name, rule_form, plus, current_index
     if (add_j){
         input_name = input_name + current_index_i + "-" + j[current_index_i];
         var input3 = document.createElement("select");
-        input3.onchange = function(){add_text_box_if_needed(input_name, input3.options[input3.selectedIndex].text, current_index_i, j[current_index_i])};
+        plus_dict[input_name] = [];
+        var my_index = j[current_index_i];
+        input3.onchange = function(){add_text_box_if_needed(input_name, input3.options[input3.selectedIndex].text, current_index_i, my_index)};
         input3.type = "select";
         input3.name = input_name;
         input3.id = input_name;
@@ -117,7 +139,7 @@ function add_options_new_keyword(url, input_name, rule_form, plus, current_index
         opt.textContent += "-----"
         input3.appendChild(opt);
         rule_form.insertBefore(input3, plus);
-
+        plus_dict[current_index_i].push(input3)
         j[current_index_i] = j[current_index_i] + 1;
     }
     const Http = new XMLHttpRequest();
@@ -125,12 +147,10 @@ function add_options_new_keyword(url, input_name, rule_form, plus, current_index
     Http.responseType = "document";
     Http.send();
     Http.onreadystatechange = (e) => {
-        console.log(e)
         if (Http.responseXML!==null){
             var input = document.getElementById(input_name);
             var els = Http.responseXML.getElementsByClassName("field-name")
             Array.prototype.forEach.call(els, function(el) {
-                console.log(el.textContent)
                 let opt = document.createElement('option');
                 opt.value = el.textContent;
                 opt.textContent += el.textContent
@@ -163,7 +183,7 @@ function add_option_keyword(){
     opt.value = "-----";
     opt.textContent += "-----"
     input.appendChild(opt);
-    input.onchange = function(){add_text_box_if_needed(input_id, input.options[input.selectedIndex].text, current_i, j[current_i])};
+    input.onchange = function(){add_text_box_if_needed(input_id, input.options[input.selectedIndex].text, current_i, 0)};
     //get option values
     const url_options="/settings/keywords/?stage=options&avalable=True";
 
@@ -182,7 +202,6 @@ function add_option_keyword(){
     //add aditional options
 
     //add_options_new_keyword(url_content_modifiers, input_id3, rule_form, plus, current_i, true)
-    console.log(j[i])
     i = i + 1;
 }
 </script>

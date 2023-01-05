@@ -26,3 +26,10 @@ class SnortRule(models.Model):
         ordering = ("name", "type", "date")
 
 
+class SnortRuleViewArray(models.Model):
+    id = models.AutoField(primary_key=True)
+    snortId = models.ForeignKey('snort.SnortRule', blank=True, null=True, on_delete=models.SET_NULL)
+    typeOfItem = models.CharField(max_length=12, blank=True)
+    locationX = models.IntegerField()
+    locationY = models.IntegerField()
+    value = models.CharField(max_length=256, blank=True)
