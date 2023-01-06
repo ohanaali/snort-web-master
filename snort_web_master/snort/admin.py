@@ -18,14 +18,14 @@ from django.shortcuts import render
 from pcaps.admin import verify_legal_pcap
 
 FIELDS = (
-    "id", "full_rule", "active", "admin_locked", 'name', "snort_builder", "request_ref", "main_ref", "description",
+    "id", "full_rule", "active", "deleted", "admin_locked", 'name', "snort_builder", "request_ref", "main_ref", "description",
     "group", "extra", "location", "user", 'pcap_sanity_check', "pcap_legal_check")
 
 BASE_BUILDER_KEY = ("action", "protocol", "srcipallow", "srcip", "srcportallow", "srcport", "direction", "dstipallow",
                     "dstportallow", "dstport")
 
 INPUT_TYPE = ("srcip" , "srcport", "dstip", "dstport")
-
+from django.core.cache import cache
 # todo: upload unmanaged rule file
 # todo: export to csv
 
@@ -151,11 +151,17 @@ class SnortRuleAdminForm(forms.ModelForm):
 
     @transaction.atomic
     def clean(self):
-        self.clean_content()
-        if self.errors:
-            return
-        self.instance.save()
-        SnortRuleViewArray.objects.filter(snortId=self.instance.id).delete()
+        try:
+            self.clean_content()
+        except Exception as e:
+            self.add_error(None, e)
+        rule_keys = []
+        self.instance.deleted = False
+        if not self.instance.pk and not self.errors:
+            self.instance.save()
+        SnortRuleViewArray.objects.filter(snortId=None).delete()
+        if not self.errors:
+            SnortRuleViewArray.objects.filter(snortId=self.instance.id).delete()
         for key, value in self.data.items():
             if key in FIELDS + ('csrfmiddlewaretoken', "_save"):
                 continue
@@ -178,12 +184,19 @@ class SnortRuleAdminForm(forms.ModelForm):
                 location_y = int(key[len("keyword"):key.index("-")])
             if "-data" in key or key in INPUT_TYPE:
                 item_type = "input"
-            SnortRuleViewArray(snortId=self.instance,
+            rule_keys.append(SnortRuleViewArray(snortId=self.instance,
                                typeOfItem=item_type,
                                locationX=location_x,
                                locationY=location_y,
                                value=value,
-                               htmlId=key).save()
+                               htmlId=key))
+        if not self.errors:
+            cache.set(self.instance.id, rule_keys)
+            for key in rule_keys:
+                key.save()
+        else:
+            cache.set(self.instance.id, rule_keys)
+            return
         if self.cleaned_data.get("active"):
             pass
             # todo: save to s3
@@ -234,32 +247,18 @@ class SnortRuleAdmin(DjangoObjectActions, admin.ModelAdmin):
     fields = FIELDS
     filter_horizontal = ('pcap_sanity_check', "pcap_legal_check")
     list_display_links = ("name",)
-    list_display = ("id", "name", "group", "description", "date", "main_ref")
+    list_display = ("id", "active", "name", "group", "description", "date", "main_ref")
     search_fields = (
     "active", 'name', "request_ref", "main_ref", "description", "group", "content", "extra", "location", "user")
     form = SnortRuleAdminForm
 
-    # def selected_template(self, obj):
-    #     return self.load_template(self, obj)
-
-    def delete_queryset(self, request, queryset):
-        print('==========================delete_queryset==========================')
-        print(queryset)
-
-        """
-        you can do anything here BEFORE deleting the object(s)
-        """
-
-        # queryset.delete()
-
-        """
-        you can do anything here AFTER deleting the object(s)
-        """
-
-        print('==========================delete_queryset==========================')
-
     def snort_builder(self, obj):
-        set_rule = SnortRuleViewArray.objects.filter(snortId=obj.id)
+        set_rule = cache.get(obj.id)
+        if set_rule is None:
+            set_rule = SnortRuleViewArray.objects.filter(snortId=obj.id)
+            cache.set(obj.id, set_rule)
+        else:
+            cache.set(obj.id, [])
         context = copy.deepcopy(self.context)
         context["build_items"] = set_rule
         snort_buider_section = self.snort_buider_section(context).content.decode("utf-8")
@@ -297,5 +296,5 @@ class SnortRuleAdmin(DjangoObjectActions, admin.ModelAdmin):
 
     # load_template.label = "load template"  # optional
     # validate.color = "green"
-    readonly_fields = ("id", 'location', "user", "admin_locked", "full_rule", "snort_builder")
+    readonly_fields = ("id", 'location', "user", "admin_locked", "full_rule", "snort_builder", "deleted")
     # load_template.short_description = "load template to edit view"  # optional

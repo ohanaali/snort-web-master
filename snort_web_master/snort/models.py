@@ -21,7 +21,12 @@ class SnortRule(models.Model):
     pcap_sanity_check = models.ManyToManyField("pcaps.Pcap", related_name='pcap_sanity_check', blank=True)
     pcap_legal_check = models.ManyToManyField("pcaps.white_Pcap", related_name='pcap_legal_check', blank=True)
     objects = models.Manager()
+    deleted = models.BooleanField(default=False)
 
+    def delete(self):
+        self.active = False
+        self.deleted = True
+        self.save()
     class Meta:
         ordering = ("name", "type", "date")
 

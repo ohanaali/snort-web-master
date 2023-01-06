@@ -1,5 +1,6 @@
+<meta http-equiv="Cache-control" content="no-cache">
+<meta http-equiv="Expires" content="-1">
 <script>
-
  function checkip(check, err) {
    var ip_label = document.getElementById(check);
  if((!(/^\$.*|^any$|^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/[0-9][0-9]?$/).test(ip_label.value)))
@@ -303,7 +304,7 @@ function selectElementManual(id, valueToSelect, htmlType, x, y, count=100, click
         <option value="!">!</option>
     </select>
     <lable id="dstiperror"></lable>
-    <input id="dstip" name="srcip" onfocusout="checkip('dstip', 'dstiperror')" class="dstip-dropdown"   />
+    <input id="dstip" name="dstip" onfocusout="checkip('dstip', 'dstiperror')" class="dstip-dropdown"   />
 
     <select id="dstportallow" name="dstportallow" class="srcportallow-dropdown"  >
         <option value="----">----</option>
