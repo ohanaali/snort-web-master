@@ -65,8 +65,13 @@
             if (elem.value === "-----"){
             continue;
             }
-            content = content + ':' +elem.value +'';
-            content = content + ';';
+            if (elem.id.startsWith("keyword_selection") && elem.id.endsWith("data")){
+                 content = content + ': "' +elem.value +'";';
+           }
+           else{
+               content = content + ':' +elem.value +';';
+           }
+
         }
         prev = elem;
     }

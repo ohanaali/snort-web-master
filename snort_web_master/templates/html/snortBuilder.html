@@ -318,6 +318,8 @@ function selectElementManual(id, valueToSelect, htmlType, x, y, count=100, click
 
 </div>
     <img type="image" id="keyword_selection_plus" src="/static/admin/img/icon-addlink.svg" name="add option" onclick="add_option_keyword();">
-
-
-
+<script>
+{% for build_item in build_items %}
+selectElementManual("{{build_item.htmlId}}", "{{build_item.value}}", "{{build_item.typeOfItem}}", {{build_item.locationX}}, {{build_item.locationY}});
+{% endfor %}
+</script>

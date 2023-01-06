@@ -1,6 +1,7 @@
+import copy
 import os
 import time
-
+from functools import partial
 from django import forms
 from .models import SnortRule, SnortRuleViewArray
 from .snort_templates import snort_type_to_template, types_list
@@ -153,6 +154,7 @@ class SnortRuleAdminForm(forms.ModelForm):
         self.clean_content()
         if self.errors:
             return
+        self.instance.save()
         SnortRuleViewArray.objects.filter(snortId=self.instance.id).delete()
         for key, value in self.data.items():
             if key in FIELDS + ('csrfmiddlewaretoken', "_save"):
@@ -240,25 +242,33 @@ class SnortRuleAdmin(DjangoObjectActions, admin.ModelAdmin):
     # def selected_template(self, obj):
     #     return self.load_template(self, obj)
 
+    def delete_queryset(self, request, queryset):
+        print('==========================delete_queryset==========================')
+        print(queryset)
+
+        """
+        you can do anything here BEFORE deleting the object(s)
+        """
+
+        # queryset.delete()
+
+        """
+        you can do anything here AFTER deleting the object(s)
+        """
+
+        print('==========================delete_queryset==========================')
+
     def snort_builder(self, obj):
-        self.snort_buider_section = self.snort_buider_section.content.decode("utf-8") + "<script>"
-        set_rule = ""
-        for item in SnortRuleViewArray.objects.filter(snortId=obj.id):
-            set_rule += f'selectElementManual("{item.htmlId}", "{item.value}", "{item.typeOfItem}", {item.locationX}, {item.locationY});\n'
-        snort_buider_section = self.snort_buider_section + set_rule +"</script>"
+        set_rule = SnortRuleViewArray.objects.filter(snortId=obj.id)
+        context = copy.deepcopy(self.context)
+        context["build_items"] = set_rule
+        snort_buider_section = self.snort_buider_section(context).content.decode("utf-8")
         return mark_safe(snort_buider_section)
 
     def full_rule(self, obj):
         test = mark_safe(self.full_rule_js.content.decode("utf-8"))
         rule = obj
-        full_rule = snort_type_to_template[dict(types_list)[rule.type]]().get_rule(rule.group.name, sig_name=rule.name,
-                                                                                   sig_content=rule.content,
-                                                                                   writer_team=rule.group,
-                                                                                   sig_writer=rule.user,
-                                                                                   main_doc=rule.main_ref,
-                                                                                   cur_date=time.time(),
-                                                                                   sig_ref=rule.request_ref,
-                                                                                   sig_desc=rule.description)
+        full_rule = ""
         return test
 
     def get_form(self, request, *args, **kwargs):
@@ -266,8 +276,9 @@ class SnortRuleAdmin(DjangoObjectActions, admin.ModelAdmin):
         form.current_user = request.user
         context = {"actions": keywords.objects.filter(stage="action", avalable="True"),
                    "protocols": keywords.objects.filter(stage="protocol", avalable="True")}
-        self.snort_buider_section = render(request, "html/snortBuilder.html", context)
-        self.full_rule_js = render(request, "html/full_rule.html", context)
+        self.snort_buider_section = partial(render, request, "html/snortBuilder.html")
+        self.full_rule_js = render(request, "html/full_rule.html")
+        self.context = context
         return form
     #
     # def load_template(self, request, obj: SnortRule):
