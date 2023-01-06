@@ -170,6 +170,7 @@ function add_option_keyword(){
     var rule_form = document.getElementById("ruleform");
     var current_i = i;
     plus.onclick = function(){add_options_new_keyword(url_content_modifiers, input_id3, rule_form, plus, current_i, true)};
+    plus.id = input_id3 + current_i + "plus";
     var br = document.createElement("br");
     rule_form.appendChild(plus);
     plus.style.visibility = "hidden";
@@ -204,6 +205,67 @@ function add_option_keyword(){
     //add_options_new_keyword(url_content_modifiers, input_id3, rule_form, plus, current_i, true)
     i = i + 1;
 }
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+clicked_item = {}
+function check_avaliavle_or_sleap(element, id, value, htmlType, x, y, count){
+    available = false
+    if (id.startsWith("keyword_selection")){
+        clicked_item[y] = false;
+    }
+    if (!(available) && (count>0)){
+        for (i = 0; i < element.length; ++i){
+            if (element.options[i].value == value){
+
+                available = true;
+                element.value = value;
+                try{
+                    element.onchange();
+                    if (id.startsWith("keyword_selection")){
+                        clicked_item[y] = true;
+                    }
+                }
+                catch{}
+                break;
+            }
+        }
+        if (!(available)){
+            setTimeout(() => {  check_avaliavle_or_sleap(element, id, value, htmlType, x, y, count-1) }, 200);
+        }
+    }
+}
+function selectElementManual(id, valueToSelect, htmlType, x, y, count=100, clicked=false) {
+    if (!(clicked) && id.startsWith("keyword_selection") && (!(id.endsWith("data"))))
+    {
+        add_option_keyword()
+    }
+    else if (!(clicked) && id.startsWith("keyword") && (!(id.endsWith("data"))))
+    {
+        if (!(clicked_item[y] ?? false)){
+            setTimeout(() => {  selectElementManual(id, valueToSelect, htmlType, x, y, count) }, 200);
+            return;
+        }
+        plus_id = id.split("-")[0] + "plus";
+        document.getElementById(plus_id).click();
+    }
+    else{
+     x = -1;
+     y = -1;
+    }
+    let element = document.getElementById(id);
+    if ((htmlType === "select") &&(element !== null)){
+        check_avaliavle_or_sleap(element, id, valueToSelect, htmlType, x, y, count);
+    }
+    else if (element !== null){
+        element.value = valueToSelect;
+    }
+    else {
+        setTimeout(() => {  selectElementManual(id, valueToSelect, htmlType, x, y, count-1, true) }, 200);
+    }
+}
+
 </script>
     <select id="action" name="action" class="action-dropdown" >
         <option value="----">----</option>
@@ -230,7 +292,7 @@ function add_option_keyword(){
         <option value="!">!</option>
     </select>
     <lable id="srcporterror"></lable>
-    <input id="srcport" name="srcpprt" onfocusout="checkport('srcport', 'srcporterror')" class="srcport-text"   />
+    <input id="srcport" name="srcport" onfocusout="checkport('srcport', 'srcporterror')" class="srcport-text"   />
 
     <select id="direction" name="direction" class="direction-dropdown"  >
         <option value="->">-></option>
@@ -255,7 +317,7 @@ function add_option_keyword(){
 
 
 </div>
-    <img type="image" src="/static/admin/img/icon-addlink.svg" name="add option" onclick="add_option_keyword();">
+    <img type="image" id="keyword_selection_plus" src="/static/admin/img/icon-addlink.svg" name="add option" onclick="add_option_keyword();">
 
 
 

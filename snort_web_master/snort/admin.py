@@ -20,10 +20,13 @@ FIELDS = (
     "id", "full_rule", "active", "admin_locked", 'name', "snort_builder", "request_ref", "main_ref", "description",
     "group", "extra", "location", "user", 'pcap_sanity_check', "pcap_legal_check")
 
-BASE_BUILDER_KEY = ("action", "protocol", "srcipallow", "srcip", "srcportallow", "srcpprt", "direction", "dstipallow",
+BASE_BUILDER_KEY = ("action", "protocol", "srcipallow", "srcip", "srcportallow", "srcport", "direction", "dstipallow",
                     "dstportallow", "dstport")
-# todo: fix the sig structure: assitent needed
+
+INPUT_TYPE = ("srcip" , "srcport", "dstip", "dstport")
+
 # todo: upload unmanaged rule file
+# todo: export to csv
 
 class SnortRuleAdminForm(forms.ModelForm):
     class Meta:
@@ -148,45 +151,37 @@ class SnortRuleAdminForm(forms.ModelForm):
     @transaction.atomic
     def clean(self):
         self.clean_content()
-        # todo:
-        """todo:
-         3 ) chaneg the snort builder method to have the values in order to build the snort builder or 
-             change the snort builder to build it as neaded to allow chages"""
         if self.errors:
             return
         SnortRuleViewArray.objects.filter(snortId=self.instance.id).delete()
         for key, value in self.data.items():
             if key in FIELDS + ('csrfmiddlewaretoken', "_save"):
                 continue
-            if key in BASE_BUILDER_KEY:
-                item_type = key
-                location_x = 0
-                location_y = 0
-            elif "keyword_selection" in key:
-                item_type = "keyword_selection"
+            item_type = "select"
+            location_x = 0
+            location_y = 0
+            if "keyword_selection" in key:
                 location_x = 0
                 try:
                     index = key.index("-")
                 except:
                     index = len(key)
                 location_y = int(key[len("keyword_selection"):index])
-                if "-data" in key:
-                    item_type += "keyword_selection-data"
             elif "keyword" in key:
-                item_type = "keyword"
                 try:
                     index = key.index("-", key.index("-") + 1)
                 except:
                     index = len(key)
                 location_x = int(key[key.index("-") + 1:index])
                 location_y = int(key[len("keyword"):key.index("-")])
-                if "-data" in key:
-                    item_type += "keyword-data"
+            if "-data" in key or key in INPUT_TYPE:
+                item_type = "input"
             SnortRuleViewArray(snortId=self.instance,
                                typeOfItem=item_type,
                                locationX=location_x,
                                locationY=location_y,
-                               value=value).save()
+                               value=value,
+                               htmlId=key).save()
         if self.cleaned_data.get("active"):
             pass
             # todo: save to s3
@@ -232,8 +227,8 @@ def validate_pcap_snort(pcaps, rule):
 
 @admin.register(SnortRule)
 class SnortRuleAdmin(DjangoObjectActions, admin.ModelAdmin):
-    change_actions = ('load_template',)
-    changelist_actions = ('load_template',)
+    # change_actions = ('load_template',)
+    # changelist_actions = ('load_template',)
     fields = FIELDS
     filter_horizontal = ('pcap_sanity_check', "pcap_legal_check")
     list_display_links = ("name",)
@@ -242,11 +237,16 @@ class SnortRuleAdmin(DjangoObjectActions, admin.ModelAdmin):
     "active", 'name', "request_ref", "main_ref", "description", "group", "content", "extra", "location", "user")
     form = SnortRuleAdminForm
 
-    def selected_template(self, obj):
-        return self.load_template(self, obj)
+    # def selected_template(self, obj):
+    #     return self.load_template(self, obj)
 
     def snort_builder(self, obj):
-        return mark_safe(self.snort_buider_section.content.decode("utf-8"))
+        self.snort_buider_section = self.snort_buider_section.content.decode("utf-8") + "<script>"
+        set_rule = ""
+        for item in SnortRuleViewArray.objects.filter(snortId=obj.id):
+            set_rule += f'selectElementManual("{item.htmlId}", "{item.value}", "{item.typeOfItem}", {item.locationX}, {item.locationY});\n'
+        snort_buider_section = self.snort_buider_section + set_rule +"</script>"
+        return mark_safe(snort_buider_section)
 
     def full_rule(self, obj):
         test = mark_safe(self.full_rule_js.content.decode("utf-8"))
@@ -269,22 +269,22 @@ class SnortRuleAdmin(DjangoObjectActions, admin.ModelAdmin):
         self.snort_buider_section = render(request, "html/snortBuilder.html", context)
         self.full_rule_js = render(request, "html/full_rule.html", context)
         return form
+    #
+    # def load_template(self, request, obj: SnortRule):
+    #     error = ""
+    #     stdout = ""
+    #     status = messages.ERROR
+    #     try:
+    #         snort_item = obj.first()
+    #     except:
+    #         snort_item = obj
+    #     template_content = snort_type_to_template[dict(types_list)[obj.type]]().rule_string
+    #     # (obj.name,sig_name=obj.name,sig_content=obj.content,writer_team=obj.group.name,sig_writer=obj.user,main_doc=obj.main_ref,cur_date=time.time(),sig_ref=obj.request_ref,sig_desc=obj.description,sid=obj.id)
+    #     obj.template = template_content
+    #     obj.save()
+    #     # return template_content
 
-    def load_template(self, request, obj: SnortRule):
-        error = ""
-        stdout = ""
-        status = messages.ERROR
-        try:
-            snort_item = obj.first()
-        except:
-            snort_item = obj
-        template_content = snort_type_to_template[dict(types_list)[obj.type]]().rule_string
-        # (obj.name,sig_name=obj.name,sig_content=obj.content,writer_team=obj.group.name,sig_writer=obj.user,main_doc=obj.main_ref,cur_date=time.time(),sig_ref=obj.request_ref,sig_desc=obj.description,sid=obj.id)
-        obj.template = template_content
-        obj.save()
-        # return template_content
-
-    load_template.label = "load template"  # optional
+    # load_template.label = "load template"  # optional
     # validate.color = "green"
     readonly_fields = ("id", 'location', "user", "admin_locked", "full_rule", "snort_builder")
-    load_template.short_description = "load template to edit view"  # optional
+    # load_template.short_description = "load template to edit view"  # optional
