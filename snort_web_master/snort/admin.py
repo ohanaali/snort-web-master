@@ -6,7 +6,8 @@ from django import forms
 from .models import SnortRule, SnortRuleViewArray
 from .snort_templates import snort_type_to_template, types_list
 from .parser import Parser
-from django.contrib import messages
+from django.utils.encoding import smart_str
+from django.http.response import HttpResponse
 from django.utils.html import mark_safe
 from django.db import transaction
 # Register your models here.
@@ -191,6 +192,7 @@ class SnortRuleAdminForm(forms.ModelForm):
                                value=value,
                                htmlId=key))
         if not self.errors:
+            self.instance.content = self.data.get("full_rule")
             cache.set(self.instance.id, rule_keys)
             for key in rule_keys:
                 key.save()
@@ -251,7 +253,37 @@ class SnortRuleAdmin(DjangoObjectActions, admin.ModelAdmin):
     search_fields = (
     "active", 'name', "request_ref", "main_ref", "description", "group", "content", "extra", "location", "user")
     form = SnortRuleAdminForm
+    actions = ['make_published']
 
+    @admin.action(description='export selected snort to csv')
+    def make_published(self, request, queryset):
+        response = HttpResponse(
+            content_type='application/force-download')  # mimetype is replaced by content_type for django 1.7
+        response['Content-Disposition'] = 'attachment; filename=%s' % smart_str("snort_export.csv")
+        str_content = "active,date,deleted,description,extra,group,name,id,user,content\n"
+        for snort_item in queryset:
+            content = snort_item.content.replace('"', "'")
+            my_list = [snort_item.active,snort_item.date,snort_item.deleted,snort_item.description,snort_item.extra,snort_item.group,snort_item.name,snort_item.pk,snort_item.user,content]
+            for item in my_list:
+                if isinstance(item, bool):
+                    str_content += str(item) + ","
+                    continue
+                if not item:
+                    str_content += ','
+                    continue
+                str_content += '"' + str(item) + '",'
+                continue
+            str_content = str_content[:-1] + "\n"
+        response.content = smart_str(str_content)
+        # It's usually a good idea to set the 'Content-Length' header too.
+        # You can also set any other required headers: Cache-Control, etc.
+        return response
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if 'delete_selected' in actions:
+            del actions['delete_selected']
+        return actions
     def snort_builder(self, obj):
         set_rule = cache.get(obj.id)
         if set_rule is None:
