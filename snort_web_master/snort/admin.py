@@ -4,10 +4,10 @@ import time
 from functools import partial
 from django import forms
 from .models import SnortRule, SnortRuleViewArray
-from .snort_templates import snort_type_to_template, types_list
+from .snort_templates import types_list
 from .parser import Parser
 from django.utils.encoding import smart_str
-from django.http.response import HttpResponse
+from django.http.response import HttpResponse, HttpResponseRedirect
 from django.utils.html import mark_safe
 from django.db import transaction
 # Register your models here.
@@ -19,7 +19,7 @@ from django.shortcuts import render
 from pcaps.admin import verify_legal_pcap
 
 FIELDS = (
-    "id", "full_rule", "active", "deleted", "admin_locked", 'name', "snort_builder", "request_ref", "main_ref", "description",
+    "id", "full_rule", "active", "is_template", "deleted", "admin_locked", 'name', "snort_builder", "request_ref", "main_ref", "description",
     "group", "extra", "location", "user", 'pcap_sanity_check', "pcap_legal_check")
 
 BASE_BUILDER_KEY = ("action", "protocol", "srcipallow", "srcip", "srcportallow", "srcport", "direction", "dstipallow",
@@ -67,6 +67,11 @@ class SnortRuleAdminForm(forms.ModelForm):
             forms.ValidationError(e)
         return self.cleaned_data["location"]
 
+    def clean_is_template(self):
+        if not self.cleaned_data.get("is_template"):
+            self.cleaned_data["active"] = False
+        return self.cleaned_data.get("is_template")
+
     def clean_pcap_sanity_check(self):
         # return self.cleaned_data.get("pcap_validation")
         if not self.cleaned_data.get("pcap_sanity_check"):
@@ -93,8 +98,6 @@ class SnortRuleAdminForm(forms.ModelForm):
         return self.cleaned_data["pcap_sanity_check"]
 
     # only admin can activate admin locked rule
-    # todo: disable deleted, add field indicate is deleted
-    # todo: snort content edit
     def clean_pcap_legal_check(self):
         # return self.cleaned_data.get("pcap_validation")
 
@@ -144,7 +147,7 @@ class SnortRuleAdminForm(forms.ModelForm):
             locked = self.instance.admin_locked
         else:
             locked = self.cleaned_data.get("admin_locked")
-        if self.cleaned_data["active"] == True and locked:
+        if self.cleaned_data["active"] and locked:
             if not self.current_user.is_staff and not self.current_user.is_superuser:
                 raise forms.ValidationError(
                     f"rule is admin locked, please contact admin", code=403)
@@ -153,7 +156,8 @@ class SnortRuleAdminForm(forms.ModelForm):
     @transaction.atomic
     def clean(self):
         try:
-            self.clean_content()
+            self.instance.user = self.clean_user()
+            self.instance.content = self.clean_content()
         except Exception as e:
             self.add_error(None, e)
         rule_keys = []
@@ -192,7 +196,6 @@ class SnortRuleAdminForm(forms.ModelForm):
                                value=value,
                                htmlId=key))
         if not self.errors:
-            self.instance.content = self.data.get("full_rule")
             cache.set(self.instance.id, rule_keys)
             for key in rule_keys:
                 key.save()
@@ -244,12 +247,12 @@ def validate_pcap_snort(pcaps, rule):
 
 @admin.register(SnortRule)
 class SnortRuleAdmin(DjangoObjectActions, admin.ModelAdmin):
-    # change_actions = ('load_template',)
+    change_actions = ('clone_rule',)
     # changelist_actions = ('load_template',)
     fields = FIELDS
     filter_horizontal = ('pcap_sanity_check', "pcap_legal_check")
     list_display_links = ("name",)
-    list_display = ("id", "active", "name", "group", "description", "date", "main_ref")
+    list_display = ("id", "active", "name", "group", "description", "date", "is_template")
     search_fields = (
     "active", 'name', "request_ref", "main_ref", "description", "group", "content", "extra", "location", "user")
     form = SnortRuleAdminForm
@@ -311,22 +314,33 @@ class SnortRuleAdmin(DjangoObjectActions, admin.ModelAdmin):
         self.full_rule_js = render(request, "html/full_rule.html")
         self.context = context
         return form
-    #
-    # def load_template(self, request, obj: SnortRule):
-    #     error = ""
-    #     stdout = ""
-    #     status = messages.ERROR
-    #     try:
-    #         snort_item = obj.first()
-    #     except:
-    #         snort_item = obj
-    #     template_content = snort_type_to_template[dict(types_list)[obj.type]]().rule_string
-    #     # (obj.name,sig_name=obj.name,sig_content=obj.content,writer_team=obj.group.name,sig_writer=obj.user,main_doc=obj.main_ref,cur_date=time.time(),sig_ref=obj.request_ref,sig_desc=obj.description,sid=obj.id)
-    #     obj.template = template_content
-    #     obj.save()
-    #     # return template_content
 
-    # load_template.label = "load template"  # optional
-    # validate.color = "green"
-    readonly_fields = ("id", 'location', "user", "admin_locked", "full_rule", "snort_builder", "deleted")
-    # load_template.short_description = "load template to edit view"  # optional
+    @transaction.atomic
+    def clone_rule(self, request, obj: SnortRule):
+        new_snort = SnortRule.objects.get(pk=obj.id)
+        new_snort.pk = None
+        new_snort.template = False
+        new_snort.active = False
+        new_snort.deleted = False
+        new_snort.user = getattr(request.user, request.user.USERNAME_FIELD)
+        new_snort.save()
+        for keyword in SnortRuleViewArray.objects.filter(snortId=obj.id):
+            keyword.pk = None
+            keyword.snortId = new_snort
+            keyword.save()
+
+        return HttpResponseRedirect(f"/snort/snortrule/{new_snort.pk}/change")
+
+    clone_rule.label = "clone_rule"  # optional
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj and (obj.is_template or obj.admin_locked):
+            read_only_fields = (
+            "id", "active", 'location', "user", "admin_locked", "full_rule", "snort_builder", "deleted")
+        else:
+            read_only_fields = ("id", 'location', "user", "admin_locked", "full_rule", "snort_builder", "deleted")
+
+        return read_only_fields
+
+    # readonly_fields = ("id", 'location', "user", "admin_locked", "full_rule", "snort_builder", "deleted")
+    clone_rule.short_description = "clone rule to a new rule"  # optional

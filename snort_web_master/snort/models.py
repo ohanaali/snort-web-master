@@ -17,7 +17,7 @@ class SnortRule(models.Model):
     request_ref = models.CharField(max_length=12, blank=True)
     main_ref = models.CharField(max_length=12, blank=True)
     date = models.DateTimeField(auto_now=True)
-    template = models.TextField(max_length=512, blank=True)
+    is_template = models.BooleanField(default=False)
     pcap_sanity_check = models.ManyToManyField("pcaps.Pcap", related_name='pcap_sanity_check', blank=True)
     pcap_legal_check = models.ManyToManyField("pcaps.white_Pcap", related_name='pcap_legal_check', blank=True)
     objects = models.Manager()

@@ -1,3 +1,4 @@
 pcaps
+settings
 snort
 snort_web_master

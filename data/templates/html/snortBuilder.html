@@ -93,8 +93,6 @@ function add_text_box_if_needed(input_id, selection, current_index_i, item_index
     }
     const url_content_modifiers="/settings/keywords/?name=" + selection;
     const Http = new XMLHttpRequest();
-    selected_keyword = document.getElementById("keyword_selection" + current_index_i)
-    selected_keyword_text = selected_keyword.options[selected_keyword.selectedIndex].text
     Http.open("GET", url_content_modifiers);
     Http.responseType = "document";
     Http.send();
@@ -146,12 +144,6 @@ function add_options_new_keyword(url, input_name, rule_form, plus, current_index
         j[current_index_i] = j[current_index_i] + 1;
     }
     const Http = new XMLHttpRequest();
-    if (current_index_i!==null)
-    {
-        selected_keyword = document.getElementById("keyword_selection" + current_index_i)
-        selected_keyword_text = selected_keyword.options[selected_keyword.selectedIndex].text
-        url = url.replace("{selected_keyword_text}", selected_keyword_text)
-    }
     Http.open("GET", url);
     Http.responseType = "document";
     Http.send();
@@ -171,14 +163,14 @@ function add_options_new_keyword(url, input_name, rule_form, plus, current_index
 }
 function add_option_keyword(){
     j[i] = 0
-    const url_modifiers="/settings/keywords/?stage={selected_keyword_text} Modifiers&avalable=True";
+    const url_content_modifiers="/settings/keywords/?stage=Content Modifiers&avalable=True";
     var plus = document.createElement("img");
     plus_dict[i] = [plus]
     plus.src = "/static/admin/img/icon-addlink.svg"
     var input_id3 = "keyword";
     var rule_form = document.getElementById("ruleform");
     var current_i = i;
-    plus.onclick = function(){add_options_new_keyword(url_modifiers, input_id3, rule_form, plus, current_i, true)};
+    plus.onclick = function(){add_options_new_keyword(url_content_modifiers, input_id3, rule_form, plus, current_i, true)};
     plus.id = input_id3 + current_i + "plus";
     var br = document.createElement("br");
     rule_form.appendChild(plus);
@@ -201,6 +193,17 @@ function add_option_keyword(){
     // add option to form
     rule_form.insertBefore(input, plus);
     rule_form.appendChild(br);
+    //var input2 = document.createElement("input");
+    //input2.type = "text";
+    //input2.name = input_id3 + j[i];
+    //input2.id = input_id3 + j[i];
+    //rule_form.insertBefore(input2, plus);
+    //j[i] = j[i] + 1;
+    //console.log(j[i])
+
+    //add aditional options
+
+    //add_options_new_keyword(url_content_modifiers, input_id3, rule_form, plus, current_i, true)
     i = i + 1;
 }
 

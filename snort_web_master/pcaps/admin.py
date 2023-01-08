@@ -44,6 +44,8 @@ class SnortRuleAdmin(admin.ModelAdmin):
     list_display = ("name", "description", "pcap_file", "rule_to_validate", "date")
     search_fields = ("name", "description", "pcap_file", "rule_to_validate")
     # form = SnortRuleAdminForm
+
+
 @admin.register(Pcap)
 class SnortRuleAdmin(admin.ModelAdmin):
     def validate(self, request, obj: Pcap):
