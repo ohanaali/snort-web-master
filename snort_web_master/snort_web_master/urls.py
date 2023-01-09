@@ -15,11 +15,12 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from snort.views import get_rule
+from snort.views import get_rule, get_rule_keys
 admin.site.site_header = 'snort web master'
 
 urlpatterns = [
     path("get_rule_update/<int:rule_id>/", get_rule),
+    path("get_rule_keywords/<int:rule_id>/", get_rule_keys),
     path("", admin.site.urls),
     path('admin/', admin.site.urls),
 ]

@@ -337,7 +337,21 @@ function selectElementManual(id, valueToSelect, htmlType, x, y, count=100, click
 </div>
     <img type="image" id="keyword_selection_plus" src="/static/admin/img/icon-addlink.svg" name="add option" onclick="add_option_keyword();">
 <script>
-{% for build_item in build_items %}
-selectElementManual("{{build_item.htmlId}}", "{{build_item.value}}", "{{build_item.typeOfItem}}", {{build_item.locationX}}, {{build_item.locationY}});
-{% endfor %}
+
+
+
+fetch("/get_rule_keywords/" + document.getElementsByClassName("form-row field-id")[0].innerText.split("\n")[1]).then((response) => response.json())
+ .then((data) =>
+{
+    for (const els of data.data){
+        selectElementManual(els.htmlId, els.value, els.typeOfItem, els.locationX, els.locationY);
+    };
+}
+ );
+
+
+
+
+
+
 </script>

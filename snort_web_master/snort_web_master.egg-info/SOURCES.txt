@@ -55,3 +55,5 @@ snort_web_master/snort_web_master.egg-info/SOURCES.txt
 snort_web_master/snort_web_master.egg-info/dependency_links.txt
 snort_web_master/snort_web_master.egg-info/requires.txt
 snort_web_master/snort_web_master.egg-info/top_level.txt
+snort_web_master/snort_web_master/middleware/__init__.py
+snort_web_master/snort_web_master/middleware/no_cache.py

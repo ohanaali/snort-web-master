@@ -9,7 +9,7 @@ class NoCacheControl:
         # Code to be executed for each request before
         # the view (and later middleware) are called.
 
-        response = never_cache(self.get_response)(request)
+        response = self.get_response(request)
 
 
         # Code to be executed for each request/response after
