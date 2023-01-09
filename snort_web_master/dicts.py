@@ -648,7 +648,8 @@ class Dicts():
                              "gtp_info",
                              "gtp_version",
                              "ssl_version",
-                             "ssl_state"
+                             "ssl_state",
+                             "!"
                              }
 
         if option:

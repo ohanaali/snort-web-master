@@ -50,13 +50,13 @@ Http.onreadystatechange = (e) => {
    }
         let opt = document.createElement('option');
         opt.value = "----";
-        opt.textContent += "----"
+        opt.textContent = "----"
         selection.appendChild(opt);
     Array.prototype.forEach.call(els, function(el) {
         // Do stuff here
         let opt = document.createElement('option');
         opt.value = el.textContent;
-        opt.textContent += el.textContent
+        opt.textContent = el.textContent
         selection.appendChild(opt);
     });
 
@@ -70,6 +70,7 @@ Http.onreadystatechange = (e) => {
 
 function add_text_box_if_needed(input_id, selection, current_index_i, item_index)
 {
+    var location_to_put = document.getElementById(input_id);
     if(input_id.startsWith('keyword_selection')){
         Array.prototype.forEach.call(plus_dict[current_index_i].slice(1), function(elem) {
             try{
@@ -83,6 +84,23 @@ function add_text_box_if_needed(input_id, selection, current_index_i, item_index
         });
         plus_dict[current_index_i][0].style.visibility = "hidden";
         plus_dict[current_index_i] = plus_dict[current_index_i].slice(0,1)
+        // preper not operation
+        var input_not = document.createElement("select");
+        input_not.style.visibility = "hidden";
+        var my_index = j[current_index_i];
+        input_not.type = "select";
+        input_not.id = input_not.name = "keyword" + current_index_i + "-not"
+        let not_opt_blank = document.createElement('option');
+        not_opt_blank.value = "-----";
+        not_opt_blank.textContent = "-----";
+        input_not.appendChild(not_opt_blank);
+        let opt_not = document.createElement('option');
+        opt_not.value = "!";
+        opt_not.textContent = "!";
+        input_not.appendChild(opt_not);
+        document.getElementById("keyword_selection" + current_index_i).insertAdjacentElement("afterend", input_not);
+        location_to_put = input_not
+        plus_dict[current_index_i].push(input_not);
     }
     else
     {
@@ -100,7 +118,7 @@ function add_text_box_if_needed(input_id, selection, current_index_i, item_index
     Http.send();
     Http.onreadystatechange = (e) => {
         if (Http.responseXML!==null){
-            var input = document.getElementById(input_id);
+            var input = location_to_put;
             if (Http.responseXML.getElementsByClassName("field-options")[0] === undefined){return};
             var els = Http.responseXML.getElementsByClassName("field-options")[0].textContent
             Array.prototype.forEach.call(els.split(","), function(splited) {
@@ -111,6 +129,7 @@ function add_text_box_if_needed(input_id, selection, current_index_i, item_index
                     if (plus_dict[input_id] === undefined){
                         plus_dict[current_index_i].push(newElem);
                         plus_dict[current_index_i][0].style.visibility = "visible";
+                        input.style.visibility = "visible";
                     }
                     else{
                         plus_dict[input_id].push(newElem);
@@ -139,7 +158,7 @@ function add_options_new_keyword(url, input_name, rule_form, plus, current_index
         input3.id = input_name;
         let opt = document.createElement('option');
         opt.value = "-----";
-        opt.textContent += "-----"
+        opt.textContent = "-----"
         input3.appendChild(opt);
         rule_form.insertBefore(input3, plus);
         plus_dict[current_index_i].push(input3)
@@ -161,7 +180,7 @@ function add_options_new_keyword(url, input_name, rule_form, plus, current_index
             Array.prototype.forEach.call(els, function(el) {
                 let opt = document.createElement('option');
                 opt.value = el.textContent;
-                opt.textContent += el.textContent
+                opt.textContent = el.textContent
                 document.getElementById(input_name).appendChild(opt);
             });
             var input = document.createElement("input");
@@ -178,6 +197,7 @@ function add_option_keyword(){
     var rule_form = document.getElementById("ruleform");
     var current_i = i;
     plus.onclick = function(){add_options_new_keyword(url_modifiers, input_id3, rule_form, plus, current_i, true)};
+
     plus.id = input_id3 + current_i + "plus";
     var br = document.createElement("br");
     rule_form.appendChild(plus);
@@ -190,12 +210,13 @@ function add_option_keyword(){
     input.name = input_id;
     let opt = document.createElement('option');
     opt.value = "-----";
-    opt.textContent += "-----"
+    opt.textContent = "-----"
     input.appendChild(opt);
     input.onchange = function(){add_text_box_if_needed(input_id, input.options[input.selectedIndex].text, current_i, 0)};
     //get option values
     const url_options="/settings/keywords/?stage=options&avalable=True";
 
+    // add not operation
     add_options_new_keyword(url_options, input_id, null, null, null)
     // add option to form
     rule_form.insertBefore(input, plus);
@@ -213,8 +234,8 @@ function check_avaliavle_or_sleap(element, id, value, htmlType, x, y, count){
         clicked_item[y] = false;
     }
     if (!(available) && (count>0)){
-        for (instance_number = 0; instance_number < element.length; ++instance_number){
-            if (element.options[i].value == value){
+        for (instance_number = 0; instance_number < element.length; instance_number++){
+            if (element.options[instance_number].value === value){
 
                 available = true;
                 element.value = value;
@@ -234,11 +255,11 @@ function check_avaliavle_or_sleap(element, id, value, htmlType, x, y, count){
     }
 }
 function selectElementManual(id, valueToSelect, htmlType, x, y, count=100, clicked=false) {
-    if (!(clicked) && id.startsWith("keyword_selection") && (!(id.endsWith("data"))))
+    if (!(clicked) && id.startsWith("keyword_selection") && (!(id.endsWith("data")))&& (!(id.endsWith("not"))))
     {
         add_option_keyword()
     }
-    else if (!(clicked) && id.startsWith("keyword") && (!(id.endsWith("data"))))
+    else if (!(clicked) && id.startsWith("keyword") && (!(id.endsWith("data")))&& (!(id.endsWith("not"))))
     {
         if (!(clicked_item[y] ?? false)){
             setTimeout(() => {  selectElementManual(id, valueToSelect, htmlType, x, y, count) }, 200);

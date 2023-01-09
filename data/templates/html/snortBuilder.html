@@ -217,8 +217,8 @@ function check_avaliavle_or_sleap(element, id, value, htmlType, x, y, count){
         clicked_item[y] = false;
     }
     if (!(available) && (count>0)){
-        for (i = 0; i < element.length; ++i){
-            if (element.options[i].value == value){
+        for (index_of_item = 0; index_of_item < element.length; index_of_item++){
+            if (element.options[index_of_item].value == value){
 
                 available = true;
                 element.value = value;

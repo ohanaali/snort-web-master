@@ -2,6 +2,8 @@ import copy
 import os
 import time
 from functools import partial
+
+import cachetools
 from django import forms
 from .models import SnortRule, SnortRuleViewArray
 from .snort_templates import types_list
@@ -10,6 +12,7 @@ from django.utils.encoding import smart_str
 from django.http.response import HttpResponse, HttpResponseRedirect
 from django.utils.html import mark_safe
 from django.db import transaction
+from django.views.decorators.cache import never_cache
 # Register your models here.
 from django.contrib import admin
 from django_object_actions import DjangoObjectActions
@@ -185,8 +188,12 @@ class SnortRuleAdminForm(forms.ModelForm):
                     index = key.index("-", key.index("-") + 1)
                 except:
                     index = len(key)
-                location_x = int(key[key.index("-") + 1:index])
-                location_y = int(key[len("keyword"):key.index("-")])
+                if key[key.index("-") + 1:index] == "not":
+                    location_x = 0
+                    location_y = 0
+                else:
+                    location_x = int(key[key.index("-") + 1:index])
+                    location_y = int(key[len("keyword"):key.index("-")])
             if "-data" in key or key in INPUT_TYPE:
                 item_type = "input"
             rule_keys.append(SnortRuleViewArray(snortId=self.instance,
@@ -289,7 +296,7 @@ class SnortRuleAdmin(DjangoObjectActions, admin.ModelAdmin):
         return actions
     def snort_builder(self, obj):
         set_rule = cache.get(obj.id)
-        if set_rule is None:
+        if not set_rule:
             set_rule = SnortRuleViewArray.objects.filter(snortId=obj.id)
             cache.set(obj.id, set_rule)
         else:

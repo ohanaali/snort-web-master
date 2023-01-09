@@ -59,6 +59,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "snort_web_master.middleware.no_cache.NoCacheControl"
 ]
 
 ROOT_URLCONF = 'snort_web_master.urls'
