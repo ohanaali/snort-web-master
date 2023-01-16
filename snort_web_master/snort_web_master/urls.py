@@ -14,13 +14,18 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
-from snort.views import get_rule, get_rule_keys
+from django.urls import path, include
+from snort.views import get_rule, get_rule_keys, build_rule_keyword_to_rule, build_rule_rule_to_keywords
+
+
 admin.site.site_header = 'snort web master'
 
 urlpatterns = [
     path("get_rule_update/<int:rule_id>/", get_rule),
     path("get_rule_keywords/<int:rule_id>/", get_rule_keys),
-    path("", admin.site.urls),
+    path('advanced_filters/', include("advanced_filters.urls")),
+    path("build_rule/keyword_to_rule", build_rule_keyword_to_rule),
+    path("build_rule/rule_to_keywords", build_rule_rule_to_keywords),
     path('admin/', admin.site.urls),
+    path("", admin.site.urls),
 ]

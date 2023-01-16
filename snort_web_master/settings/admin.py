@@ -15,4 +15,4 @@ class attack_groupAdmin(admin.ModelAdmin):
 
 @admin.register(keywords)
 class keywords(admin.ModelAdmin):
-    list_display = ['name', 'stage', "options"]
+    list_display = ['name', 'stage', "options", "description"]

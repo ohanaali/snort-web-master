@@ -1,6 +1,7 @@
 <meta http-equiv="Cache-control" content="no-cache">
 <meta http-equiv="Expires" content="-1">
 <script>
+ var csrftoken = '{{ csrf_token }}';
  function checkip(check, err) {
    var ip_label = document.getElementById(check);
  if((!(/^\$.*|^any$|^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/[0-9][0-9]?$/).test(ip_label.value)))
@@ -124,12 +125,21 @@ function add_text_box_if_needed(input_id, selection, current_index_i, item_index
             Array.prototype.forEach.call(els.split(","), function(splited) {
                 if (splited==="string"||splited==="int"){
                     var newElem = document.createElement("input");
-                    newElem.name = newElem.id = input_id + "-" + "data"
+                    newElem.onchange = function(){setTimeout(() => { build_rule();}, 50);};
+                    newElem.oninput = function(){setTimeout(() => { build_rule();}, 50);};
+                    newElem.name = newElem.id = input_id + "-data"
                     input.insertAdjacentElement("afterend", newElem);
                     if (plus_dict[input_id] === undefined){
                         plus_dict[current_index_i].push(newElem);
                         plus_dict[current_index_i][0].style.visibility = "visible";
-                        input.style.visibility = "visible";
+                        if (splited === "string"){
+                            input.style.visibility = "visible";
+                        }
+                        else
+                        {
+                        input.style.width = "0px"
+                        input.style.padding = "0px 0px"
+                        }
                     }
                     else{
                         plus_dict[input_id].push(newElem);
@@ -156,6 +166,7 @@ function add_options_new_keyword(url, input_name, rule_form, plus, current_index
         input3.type = "select";
         input3.name = input_name;
         input3.id = input_name;
+        input3.onblur= function(){setTimeout(() => { build_rule();}, 50);};
         let opt = document.createElement('option');
         opt.value = "-----";
         opt.textContent = "-----"
@@ -187,32 +198,56 @@ function add_options_new_keyword(url, input_name, rule_form, plus, current_index
         }
     }
 }
-function add_option_keyword(){
-    j[i] = 0
+function add_option_keyword(manual=false, input_id="", x=-1, y=-1, selected_value="", htmlType=null){
+    var my_i = i
+
+    if (manual){
+        if (document.getElementById(input_id)!==null){
+            document.getElementById(input_id).remove();
+            my_i = x
+            Array.prototype.forEach.call(plus_dict[x].slice(1), function(elem) {
+                try{
+                    elem.remove()
+                }
+                catch (error) {
+                    elem.forEach(el => {
+                        el.remove()
+                    });
+                }
+            });
+        }else{
+            manual=false;
+        }
+    }
+    j[my_i] = 0
     const url_modifiers="/settings/keywords/?stage={selected_keyword_text} Modifiers&avalable=True";
-    var plus = document.createElement("img");
-    plus_dict[i] = [plus]
-    plus.src = "/static/admin/img/icon-addlink.svg"
+
     var input_id3 = "keyword";
     var rule_form = document.getElementById("ruleform");
-    var current_i = i;
-    plus.onclick = function(){add_options_new_keyword(url_modifiers, input_id3, rule_form, plus, current_i, true)};
-
-    plus.id = input_id3 + current_i + "plus";
+    var current_i = my_i;
+    if (!manual)
+    {
+        var plus = document.createElement("img");
+        plus_dict[my_i] = [plus]
+        plus.src = "/static/admin/img/icon-addlink.svg"
+        plus.onclick = function(){add_options_new_keyword(url_modifiers, input_id3, rule_form, plus, current_i, true)};
+        plus.id = input_id3 + current_i + "plus";
+        rule_form.appendChild(plus);
+        plus.style.visibility = "hidden";
+    }
+    plus = plus_dict[my_i][0]
     var br = document.createElement("br");
-    rule_form.appendChild(plus);
-    plus.style.visibility = "hidden";
-    // create new option(keyword)
     var input = document.createElement("select");
-    var input_id = "keyword_selection"+ current_i;
+    input_id = "keyword_selection"+ current_i;
     input.id = input_id;
     input.type = "select";
     input.name = input_id;
     let opt = document.createElement('option');
     opt.value = "-----";
     opt.textContent = "-----"
-    input.appendChild(opt);
     input.onchange = function(){add_text_box_if_needed(input_id, input.options[input.selectedIndex].text, current_i, 0)};
+    input.onblur= function(){setTimeout(() => { build_rule();}, 50);};
+    input.appendChild(opt);
     //get option values
     const url_options="/settings/keywords/?stage=options&avalable=True";
 
@@ -220,8 +255,13 @@ function add_option_keyword(){
     add_options_new_keyword(url_options, input_id, null, null, null)
     // add option to form
     rule_form.insertBefore(input, plus);
-    rule_form.appendChild(br);
-    i = i + 1;
+    if (!manual)
+    {
+        rule_form.appendChild(br);
+    }
+    if (my_i === i){
+        i = i + 1;
+    }
 }
 
 function sleep(ms) {
@@ -236,6 +276,30 @@ function check_avaliavle_or_sleap(element, id, value, htmlType, x, y, count){
     if (!(available) && (count>0)){
         for (instance_number = 0; instance_number < element.length; instance_number++){
             if (element.options[instance_number].value === value){
+                available = true;
+                element.value = value;
+                try{
+                    element.onchange();
+                    if (id.startsWith("keyword_selection")){
+                        clicked_item[y] = true;
+                    }
+
+                }
+                catch{}
+                break;
+            }
+        }
+        if (!(available)){
+            setTimeout(() => {  check_avaliavle_or_sleap(element, id, value, htmlType, x, y, count-1) }, 10);
+        }
+    }
+    if (count <=0){
+        let opt = document.createElement('option');
+        opt.value = value;
+        opt.textContent = value
+        element.appendChild(opt);
+        for (instance_number = 0; instance_number < element.length; instance_number++){
+            if (element.options[instance_number].value === value){
 
                 available = true;
                 element.value = value;
@@ -244,25 +308,28 @@ function check_avaliavle_or_sleap(element, id, value, htmlType, x, y, count){
                     if (id.startsWith("keyword_selection")){
                         clicked_item[y] = true;
                     }
+                    not_item = document.getElementById("keyword" + x +"-not");
+                    if (not_item != null){
+                        not_item.style.visibility = "hidden";
+                    }
                 }
+
                 catch{}
+
                 break;
             }
         }
-        if (!(available)){
-            setTimeout(() => {  check_avaliavle_or_sleap(element, id, value, htmlType, x, y, count-1) }, 200);
-        }
     }
 }
-function selectElementManual(id, valueToSelect, htmlType, x, y, count=100, clicked=false) {
+function selectElementManual(id, valueToSelect, htmlType, x, y, count=40, clicked=false) {
     if (!(clicked) && id.startsWith("keyword_selection") && (!(id.endsWith("data")))&& (!(id.endsWith("not"))))
     {
-        add_option_keyword()
+        add_option_keyword(true, id, x ,y ,valueToSelect, htmlType)
     }
     else if (!(clicked) && id.startsWith("keyword") && (!(id.endsWith("data")))&& (!(id.endsWith("not"))))
     {
         if (!(clicked_item[y] ?? false)){
-            setTimeout(() => {  selectElementManual(id, valueToSelect, htmlType, x, y, count) }, 200);
+            setTimeout(() => {  selectElementManual(id, valueToSelect, htmlType, x, y, count) }, 10);
             return;
         }
         plus_id = id.split("-")[0] + "plus";
@@ -278,80 +345,197 @@ function selectElementManual(id, valueToSelect, htmlType, x, y, count=100, click
     }
     else if (element !== null){
         element.value = valueToSelect;
+        element.onchange = function(){setTimeout(build_rule(), 50);};
+        element.oninput = function(){setTimeout(build_rule(), 50);};
     }
     else {
-        setTimeout(() => {  selectElementManual(id, valueToSelect, htmlType, x, y, count-1, true) }, 200);
+        setTimeout(() => {  selectElementManual(id, valueToSelect, htmlType, x, y, count-1, true) }, 10);
     }
 }
 
 </script>
-    <select id="action" name="action" class="action-dropdown" >
-        <option value="----">----</option>
+    <select id="action" name="action" class="action-dropdown" onblur="build_rule();" >
+        <option value="-----">-----</option>
         {% for action in actions %}
             <option value="{{ action.name}}">{{ action.name }}</option>
         {% endfor %}
     </select>
-    <select id="protocol" name="protocol" class="protocol-dropdown"  >
-        <option value="----">----</option>
+    <select id="protocol" name="protocol" class="protocol-dropdown" onblur="build_rule();" >
+        <option value="-----">-----</option>
         {% for protocol in protocols %}
             <option value="{{ protocol.name}}">{{ protocol.name }}</option>
         {% endfor %}
     </select>
-    <select id="srcipallow" name="srcipallow" class="srcipallow-dropdown"  >
-        <option value="----">----</option>
+    <select id="srcipallow" name="srcipallow" class="srcipallow-dropdown" onblur="build_rule();" >
+        <option value="-----">-----</option>
         <option value="!">!</option>
     </select>
     <lable id="srciperror"></lable>
 
-    <input id="srcip" name="srcip" onfocusout="checkip('srcip', 'srciperror')" class="srcip-text"   />
+    <input id="srcip" name="srcip" onfocusout="checkip('srcip', 'srciperror')" class="srcip-text"  onblur="build_rule();" />
 
-    <select id="srcportallow" name="srcportallow" class="srcportallow-dropdown"  >
-        <option value="----">----</option>
+    <select id="srcportallow" name="srcportallow" class="srcportallow-dropdown" onblur="build_rule();" >
+        <option value="-----">-----</option>
         <option value="!">!</option>
     </select>
     <lable id="srcporterror"></lable>
-    <input id="srcport" name="srcport" onfocusout="checkport('srcport', 'srcporterror')" class="srcport-text"   />
+    <input id="srcport" name="srcport" onfocusout="checkport('srcport', 'srcporterror')" class="srcport-text"  onblur="build_rule();" />
 
-    <select id="direction" name="direction" class="direction-dropdown"  >
+    <select id="direction" name="direction" class="direction-dropdown" onblur="build_rule();" >
         <option value="->">-></option>
         <option value="<>"><></option>
     </select>
-    <select id="dstipallow" name="dstipallow" class="srcipallow-dropdown"  >
-        <option value="----">----</option>
+    <select id="dstipallow" name="dstipallow" class="srcipallow-dropdown" onblur="build_rule();" >
+        <option value="-----">-----</option>
         <option value="!">!</option>
     </select>
     <lable id="dstiperror"></lable>
-    <input id="dstip" name="dstip" onfocusout="checkip('dstip', 'dstiperror')" class="dstip-dropdown"   />
+    <input id="dstip" name="dstip" onfocusout="checkip('dstip', 'dstiperror')" class="dstip-dropdown"  onblur="build_rule();" />
 
-    <select id="dstportallow" name="dstportallow" class="srcportallow-dropdown"  >
-        <option value="----">----</option>
+    <select id="dstportallow" name="dstportallow" class="srcportallow-dropdown"  onblur="build_rule();">
+        <option value="-----">-----</option>
         <option value="!">!</option>
     </select>
     <lable id="dstporterror"></lable>
 
-    <input id="dstport" name="dstport" onfocusout="checkport('dstport', 'dstporterror')"  class="dstport-text"   />
+    <input id="dstport" name="dstport" onfocusout="checkport('dstport', 'dstporterror')"  class="dstport-text"  onblur="build_rule();" />
     <br>
 <div id="ruleform">
 
 
 </div>
-    <img type="image" id="keyword_selection_plus" src="/static/admin/img/icon-addlink.svg" name="add option" onclick="add_option_keyword();">
+    <img type="image" id="keyword_selection_plus" src="/static/admin/img/icon-addlink.svg" name="add option" onclick="add_option_keyword();" onblur="build_rule();">
 <script>
 
+// Example POST method implementation:
+async function postData(url = '', data = {}) {
+  // Default options are marked with *
+  const response = await fetch(url, {
+    method: 'POST', // *GET, POST, PUT, DELETE, etc.
+    mode: 'cors', // no-cors, *cors, same-origin
+    cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+    credentials: 'same-origin', // include, *same-origin, omit
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': csrftoken
+      // 'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    redirect: 'follow', // manual, *follow, error
+    referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+    body: JSON.stringify(data) // body data type must match "Content-Type" header
+  });
+  return response.json(); // parses JSON response into native JavaScript objects
+}
 
-
-fetch("/get_rule_keywords/" + document.getElementsByClassName("form-row field-id")[0].innerText.split("\n")[1]).then((response) => response.json())
+<!--fetch("/get_rule_keywords/" + document.getElementsByClassName("form-row field-id")[0].innerText.split("\n")[1]).then((response) => response.json())-->
+<!-- .then((data) =>-->
+<!--{-->
+<!--    var res_data_fetch = data-->
+<!--    for (const els of data.data){-->
+<!--        selectElementManual(els.htmlId, els.value, els.typeOfItem, els.locationX, els.locationY);-->
+<!--    };-->
+<!--}-->
+<!-- );-->
+var my_inputs = {};
+function set_content_change(e){
+    if (my_inputs[e.target.id]!== undefined){
+        clearTimeout(my_inputs[e.target.id]);
+    }
+    my_inputs[e.target.id] = setTimeout(() => { content_change()}, 500);
+}
+   var id_content = document.getElementById("id_content");
+postData("/build_rule/keyword_to_rule", {"fule_rule": id_content.textContent})
  .then((data) =>
 {
+    var res_data_post = data
     for (const els of data.data){
         selectElementManual(els.htmlId, els.value, els.typeOfItem, els.locationX, els.locationY);
     };
+    document.getElementById("id_content").oninput = function(e){
+            set_content_change(e)
+        ;};
+    document.getElementById("id_content").onblur = function(e){
+            set_content_change(e)
+        };
+    document.getElementById("id_description").oninput = function(e){
+            set_content_change(e)
+        };
+    document.getElementById("id_description").onblur = function(e){
+            set_content_change(e)
+        };
+    document.getElementById("id_name").oninput = function(e){
+            set_content_change(e)
+        };
+    document.getElementById("id_name").onblur = function(e){
+            set_content_change(e)
+        };
+    document.getElementById("id_group").onchange = function(e){
+            set_content_change(e)
+        };
+    document.getElementById("id_group").onblur = function(e){
+            set_content_change(e)
+        };
+    document.getElementById("id_main_ref").oninput = function(e){
+            set_content_change(e)
+        };
+    document.getElementById("id_main_ref").onblur = function(e){
+            set_content_change(e)
+        };
+    document.getElementById("id_request_ref").oninput = function(e){
+            set_content_change(e)
+        };
+    document.getElementById("id_request_ref").onblur = function(e){
+            set_content_change(e)
+        };
 }
  );
 
 
+function content_change(){
+   var id_content = document.getElementById("id_content");
+    postData("/build_rule/keyword_to_rule", {"fule_rule": id_content.value})
+    .then((data) =>
+    {
+        var res_data_post = data
+        for (const els of data.data){
+            selectElementManual(els.htmlId, els.value, els.typeOfItem, els.locationX, els.locationY);
+        };
+        if (data.metadata_description !== undefined){
+            document.getElementById("id_description").value = data.metadata_description
+        };
+        if (data.metadata_document !== undefined){
+            document.getElementById("id_request_ref").value = data.metadata_description
+        };
+        if (data.metadata_treatment !== undefined){
+            document.getElementById("id_main_ref").value = data.metadata_description
+        };
+        if (data.metadata_name !== undefined){
+            document.getElementById("id_name").value = data.metadata_description
+        };
+        if (data.metadata_group !== undefined){
+            var group_select = document.getElementById("id_group")
+            for (instance_number = 0; instance_number < group_select.length; instance_number++){
+                if (group_select.options[instance_number].text === data.metadata_group){
+                    group_select.value = instance_number;
+                    try{
+                        group_select.onchange();
+                    }
+                    catch{}
+                    break;
+                }
+            }
+        }
 
-
+    }
+    );
+ };
+  var id_content = document.getElementById("id_content");
+  id_content.onblur = function(e){
+            set_content_change(e)
+        };
+  id_content.oninput = function(e){
+            set_content_change(e)
+        };
 
 
 </script>

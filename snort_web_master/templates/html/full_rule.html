@@ -1,40 +1,31 @@
 </div><script>
   var date_now = Date.now()
-  var position = document.getElementsByClassName("form-row field-full_rule")[0];
-  var newElem = document.createElement("textarea");
-  var newElem2 = document.createElement("input");
-  newElem.readOnly = true;
-  newElem2.hidden = true;
-  newElem.style.width = '100%';
-  newElem.style.height = '100%';
-  newElem.name = "full_rule";
-  newElem.id = "full_rule";
-  newElem.style.wordWrap  = "normal";
-  newElem.style.wordBreak = "normal";
-  position.insertAdjacentElement("beforeend", newElem);
-  position.insertAdjacentElement("beforeend", newElem2);
-  var intervalId = window.setInterval(function(){
+  var id_content = document.getElementById("id_content");
+  id_content.style.width = '98%';
+  id_content.style.wordWrap  = "normal";
+  id_content.style.wordBreak = "normal";
+  function build_rule() {
   var sigid = document.getElementsByClassName("form-row field-id")[0].innerText.split("\n")[1];
   var user_name = document.getElementsByClassName("form-row field-user")[0].innerText.split("\n")[1];
   var action = document.getElementById("action").value;
   var protocol = document.getElementById("protocol").value;
   var srcipallow = document.getElementById("srcipallow").value;
-  srcipallow = (srcipallow==="----")? "" : srcipallow
+  srcipallow = (srcipallow==="-----")? "" : srcipallow
   var srcip = document.getElementById("srcip").value;
   srcip = (srcip==="")? "any" : srcip
   var srcport = document.getElementById("srcport").value;
   srcport = (srcport==="")? "any" : srcport
   var srcportallow = document.getElementById("srcportallow").value;
-  srcportallow = (srcportallow==="----")? "" : srcportallow
+  srcportallow = (srcportallow==="-----")? "" : srcportallow
   var direction = document.getElementById("direction").value;
   var dstipallow = document.getElementById("dstipallow").value;
-  dstipallow = (dstipallow==="----")? "" : dstipallow
+  dstipallow = (dstipallow==="-----")? "" : dstipallow
   var dstip = document.getElementById("dstip").value;
   dstip = (dstip==="")? "any" : dstip
   var dstport = document.getElementById("dstport").value;
   dstport = (dstport==="")? "any" : dstport
   var dstportallow = document.getElementById("dstportallow").value;
-  dstportallow = (dstportallow==="----")? "" : dstportallow
+  dstportallow = (dstportallow==="-----")? "" : dstportallow
   var group = document.getElementById("id_group")[document.getElementById("id_group").value];
   var name = document.getElementById("id_name").value;
   var id_request_ref  = document.getElementById("id_request_ref").value;
@@ -59,14 +50,17 @@
                 continue;
             }
             if (content.endsWith(":;")){
-                    content = content.replace(":;", ";")
+                    content = content.replaceAll(":;", ";")
                 }
             if (content.endsWith(";;")){
-                content = content.replace(";;", ";")
+                content = content.replaceAll(";;", ";")
             }
             content = content + elem.options[elem.selectedIndex].text;
+            if (content.endsWith(";!")){
+                content = content.replaceAll(";!", ": !")
+            }
             if (content.endsWith(";;")){
-                content = content.replace(";;", ";")
+                content = content.replaceAll(";;", ";")
             }
             if (!(content.endsWith(";")) && (content !== current_content)){
                 content = content + ";"
@@ -79,19 +73,23 @@
             continue;
             }
             if (content.endsWith(":;")){
-                    content = content.replace(":;", ";")
+                    content = content.replaceAll(":;", ";")
                 }
             if (content.endsWith(";;")){
-                content = content.replace(";;", ";")
+                content = content.replaceAll(";;", ";")
             }
-            if (elem.id.startsWith("keyword_selection") && elem.id.endsWith("data")){
+            if (elem.id.startsWith("keyword_selection") && elem.id.endsWith("data") && content.endsWith("!;"))
+            {
+                content = content.substring(0, content.length-1) + '"' +elem.value +'";';
+            }
+            else if (elem.id.startsWith("keyword_selection") && elem.id.endsWith("data")){
                  content = content.substring(0, content.length-1) + ': "' +elem.value +'";';
            }
            else{
                content = content.substring(0, content.length-1) + ':' +elem.value +';';
            }
             if (content.endsWith(";;")){
-                content = content.replace(";;", ";")
+                content = content.replaceAll(";;", ";")
             }
             if (!(content.endsWith(";")) && (content !== current_content)){
                 content = content + ";"
@@ -108,11 +106,11 @@
   {
   group = "";
   }
-    newElem.value=action + " " + protocol + " " + srcipallow + srcip +" " +srcportallow+ srcport + " " + direction
-    + " " + dstipallow + dstip + " " +dstportallow+ dstport
-     + "(msg:"+ group+ " " +name+ ";" + content+
-     "sid:" +sigid +"; metadata: 'employee "+ user_name+", group " + group + ", name " + name +", treatment "+
-     id_main_ref+", keywords 'None', date "+date_now+", document " + id_request_ref +
-     ",' description "+id_description+"';)";
-}, 500);
+
+    id_content.value = id_content.textContent=action + " " + protocol + " " + srcipallow + srcip +" " +srcportallow+
+    srcport + " " + direction + " " + dstipallow + dstip + " " + dstportallow + dstport
+     + "(msg:" + group + " " + name+ ";" + content+ "sid:" +sigid +"; metadata: 'employee "+
+     user_name + ", group " + group + ", name " + name + ", treatment " + id_main_ref +
+      ", keywords 'None', date "+date_now+", document " + id_request_ref + ",' description "+id_description+"';)";
+};
 </script>

@@ -415,13 +415,17 @@ class Parser(object):
         options_dict = collections.OrderedDict()
         for index, option_string in enumerate(opts):
             if ':' in option_string:
+                negate = ""
+                if option_string.strip().startswith("!"):
+                    option_string = option_string.strip()[1:]
+                    negate = "!"
                 option = option_string.split(":", 1)
                 key, value = option
                 if key != "pcre":
                     value = value.split(",")
                 options_dict[index] = (key, value)
             else:
-                options_dict[index] = (option_string, "")
+                options_dict[index] = (option_string, negate + "")
         return options_dict
 
     def validate_options(self, options):

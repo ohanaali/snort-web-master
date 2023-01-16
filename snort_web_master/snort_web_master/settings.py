@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'pcaps',
     "django_object_actions",
     "settings",
+    "advanced_filters"
 
 ]
 

@@ -20,11 +20,18 @@ import subprocess
 from settings.models import Setting, keywords
 from django.shortcuts import render
 from pcaps.admin import verify_legal_pcap
+from advanced_filters.admin import AdminAdvancedFiltersMixin
 
-FIELDS = (
-    "id", "full_rule", "active", "is_template", "deleted", "admin_locked", 'name', "snort_builder", "request_ref", "main_ref", "description",
-    "group", "extra", "location", "user", 'pcap_sanity_check', "pcap_legal_check")
 
+BASE_FIELDS = [
+    "id", "active", "is_template", "deleted", "admin_locked", 'name', "request_ref", "main_ref", "description",
+    "extra", "location", "user"]
+FILTER_FIELDS = ("active", "is_template", "deleted", "admin_locked")
+ADVANCE_FILTER_FIELDS = tuple(i for i in BASE_FIELDS + ["content", ("pcap_sanity_check__name", "pcap_sanity_check_name"), ("pcap_legal_check__name", "pcap_legal_check_name"),("group_name", "group_name")])
+FIELDS = [
+    "id", "content", "active", "is_template", "deleted", "admin_locked", 'name', "request_ref", "main_ref", "snort_builder", "description",
+    "group", "extra", "location", "user", 'pcap_sanity_check', "pcap_legal_check", ]
+SEARCH_FIELDS = tuple(i for i in BASE_FIELDS + ["content", "pcap_sanity_check__name", "pcap_legal_check__name", "group__name"])
 BASE_BUILDER_KEY = ("action", "protocol", "srcipallow", "srcip", "srcportallow", "srcport", "direction", "dstipallow",
                     "dstportallow", "dstport")
 
@@ -34,10 +41,6 @@ from django.core.cache import cache
 # todo: export to csv
 
 class SnortRuleAdminForm(forms.ModelForm):
-    class Meta:
-        model = SnortRule
-        fields = "__all__"
-
     def clean_user(self):
         return getattr(self.current_user, self.current_user.USERNAME_FIELD)
 
@@ -51,13 +54,13 @@ class SnortRuleAdminForm(forms.ModelForm):
 
     def clean_content(self):
         try:
-            parser = Parser(self.data["full_rule"])
+            parser = Parser(self.data["content"])
             parser.parse_header()
             parser.parse_options()
         except Exception as e:
             raise forms.ValidationError(e)
 
-        return self.data["full_rule"]
+        return self.data["content"]
 
     def clean_location(self):
         try:
@@ -87,7 +90,7 @@ class SnortRuleAdminForm(forms.ModelForm):
                 raise forms.ValidationError(
                     f"bad configuration setting (FORCE_SANITY_CHECK), pleas edit setting(FORCE_SANITY_CHECK) must be True or False")
         cur_rule = SnortRule()
-        cur_rule.content = self.data.get("full_rule")
+        cur_rule.content = self.data.get("content")
         cur_rule.location = self.data.get("location")
         cur_rule.group = self.instance.group
         cur_rule.id = self.data.get("id")
@@ -171,7 +174,7 @@ class SnortRuleAdminForm(forms.ModelForm):
         if not self.errors:
             SnortRuleViewArray.objects.filter(snortId=self.instance.id).delete()
         for key, value in self.data.items():
-            if key in FIELDS + ('csrfmiddlewaretoken', "_save"):
+            if key in FIELDS + ['csrfmiddlewaretoken', "_save"]:
                 continue
             item_type = "select"
             location_x = 0
@@ -253,15 +256,19 @@ def validate_pcap_snort(pcaps, rule):
 
 
 @admin.register(SnortRule)
-class SnortRuleAdmin(DjangoObjectActions, admin.ModelAdmin):
+class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, admin.ModelAdmin):
+    list_filter = FILTER_FIELDS  # simple list filters
+
+    # specify which fields can be selected in the advanced filter
+    # creation form
+    advanced_filter_fields = ADVANCE_FILTER_FIELDS
     change_actions = ('clone_rule',)
     # changelist_actions = ('load_template',)
     fields = FIELDS
     filter_horizontal = ('pcap_sanity_check', "pcap_legal_check")
     list_display_links = ("name",)
-    list_display = ("id", "active", "name", "group", "description", "date", "is_template")
-    search_fields = (
-    "active", 'name', "request_ref", "main_ref", "description", "group", "content", "extra", "location", "user")
+    list_display = ("id", "user", "active", "name", "group", "description", "content", "date", "is_template")
+    search_fields = SEARCH_FIELDS
     form = SnortRuleAdminForm
     actions = ['make_published']
 
@@ -304,13 +311,7 @@ class SnortRuleAdmin(DjangoObjectActions, admin.ModelAdmin):
         context = copy.deepcopy(self.context)
         context["build_items"] = set_rule
         snort_buider_section = self.snort_buider_section(context).content.decode("utf-8")
-        return mark_safe(snort_buider_section)
-
-    def full_rule(self, obj):
-        test = mark_safe(self.full_rule_js.content.decode("utf-8"))
-        rule = obj
-        full_rule = ""
-        return test
+        return mark_safe(self.full_rule_js.content.decode("utf-8") + snort_buider_section)
 
     def get_form(self, request, *args, **kwargs):
         form = super(SnortRuleAdmin, self).get_form(request, **kwargs)
@@ -326,7 +327,7 @@ class SnortRuleAdmin(DjangoObjectActions, admin.ModelAdmin):
     def clone_rule(self, request, obj: SnortRule):
         new_snort = SnortRule.objects.get(pk=obj.id)
         new_snort.pk = None
-        new_snort.template = False
+        new_snort.is_template = False
         new_snort.active = False
         new_snort.deleted = False
         new_snort.user = getattr(request.user, request.user.USERNAME_FIELD)
@@ -343,9 +344,9 @@ class SnortRuleAdmin(DjangoObjectActions, admin.ModelAdmin):
     def get_readonly_fields(self, request, obj=None):
         if obj and (obj.is_template or obj.admin_locked):
             read_only_fields = (
-            "id", "active", 'location', "user", "admin_locked", "full_rule", "snort_builder", "deleted")
+            "id", "active", 'location', "user", "admin_locked", "snort_builder", "deleted")
         else:
-            read_only_fields = ("id", 'location', "user", "admin_locked", "full_rule", "snort_builder", "deleted")
+            read_only_fields = ("id", 'location', "user", "admin_locked", "snort_builder", "deleted")
 
         return read_only_fields
 
