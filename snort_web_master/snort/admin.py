@@ -1,12 +1,13 @@
 import copy
 import os
 import csv
+import time
 from io import StringIO
 from django.contrib import messages
 from functools import partial
 from import_export.admin import ImportExportModelAdmin
 from django import forms
-from .models import SnortRule, SnortRuleViewArray
+from .models import SnortRule, SnortRuleViewArray, save_rule_to_s3, delete_rule_from_s3
 from .snort_templates import types_list
 from .parser import Parser
 from django.utils.encoding import smart_str
@@ -195,7 +196,7 @@ class SnortRuleAdminForm(forms.ModelForm):
         self.instance.deleted = False
         if not self.instance.pk and not self.errors:
             self.instance.save()
-        SnortRuleViewArray.objects.filter(snortId=None).delete()
+        # SnortRuleViewArray.objects.filter(snortId=None).delete()
         if not self.errors:
             SnortRuleViewArray.objects.filter(snortId=self.instance.id).delete()
         for key, value in self.data.items():
@@ -238,10 +239,11 @@ class SnortRuleAdminForm(forms.ModelForm):
             cache.set(self.instance.id, rule_keys)
             return
         if self.cleaned_data.get("active"):
+            save_rule_to_s3(self.instance.id, self.instance.content)
             pass
             # todo: save to s3
         else:
-            pass
+            delete_rule_from_s3(self.instance.id)
             # todo: make sure it is not on prod
 
 
@@ -305,7 +307,7 @@ class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, ImportExpor
         errors = False
         if request.method == 'POST':
             snort_rules_to_save = []
-            snort_rules_options_to_save = []
+            snort_rules_options_to_save = {}
             try:
                 csv_file = request.FILES['myfile']
                 if not csv_file.name.endswith('.csv'):
@@ -329,7 +331,10 @@ class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, ImportExpor
                         snort_rule.group = attackGroup.objects.get(name=item["Group"])
                     snort_rule.name = item["Name"]
                     if item.get("Id"):
-                        snort_rule.PK = item["Id"]
+                        snort_rule.id = item["Id"]
+                    else:
+                        temp_id = str(time.time())
+                        snort_rule.id = "temp " + temp_id
                     snort_rule.content = item["Rule"]
 
                     try:
@@ -340,7 +345,9 @@ class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, ImportExpor
                             raise Exception("bad rule format")
                         build_keyword_dict(resppnse, rule_parsed)
                         for item_data in resppnse["data"]:
-                            snort_rules_options_to_save.append(SnortRuleViewArray(**item_data))
+                            temp_id = snort_rule.id
+                            snort_rules_options_to_save[temp_id] = []
+                            snort_rules_options_to_save[temp_id].append(SnortRuleViewArray(**item_data))
                         for op in rule_parsed.options:
                             if op.name == "msg":
                                 if snort_rule.group:
@@ -351,7 +358,7 @@ class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, ImportExpor
                                     op.value += snort_rule.name
                                 continue
                             if op.name == "sid":
-                                op.value = snort_rule.PK
+                                op.value = snort_rule.id
                                 continue
                             if op.name == "metadata":
                                 new_value = []
@@ -380,9 +387,11 @@ class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, ImportExpor
                                     new_value.append(f"employee {snort_rule.user}")
                                 op.value.data = new_value
                                 continue
-                        snort_rule.content = rule_parsed.build_rule()
+                        snort_rule.content = rule_parsed
                         snort_rules_to_save.append(snort_rule)
                     except Exception as e:
+                        import traceback
+                        traceback.print_exc()
                         errors = True
                         messages.error(request, f"Unable to load rule {item['Name']}. {repr(e)}")
                         pass
@@ -392,9 +401,30 @@ class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, ImportExpor
                 messages.error(request, "Unable to upload file. " + repr(e))
             if not errors:
                 for rule in snort_rules_to_save:
+                    rule_id = rule.id
+                    if rule_id.startswith("temp "):
+                        rule.id = None
+                        rule_parsed = rule.content
+                        for op in rule_parsed.options:
+                            if op.name == "sid":
+                                op.value = 0
+                                break
+                        rule.content = ""
+                        rule.save()
+                        for op in rule_parsed.options:
+                            if op.name == "sid":
+                                op.value = rule.id
+                                break
+                    rule.content = rule_parsed.build_rule()
                     rule.save()
-                for attr in snort_rules_options_to_save:
-                    attr.save()
+                    if rule.active:
+                        save_rule_to_s3(rule.id, rule.content)
+                    else:
+                        delete_rule_from_s3(rule.id)
+                    SnortRuleViewArray.objects.filter(snortId=rule.id).delete()
+                    for attr in snort_rules_options_to_save[rule_id]:
+                        attr.snortId = rule
+                        attr.save()
                 return HttpResponseRedirect("/admin/snort/snortrule/")
             return HttpResponseRedirect("/admin/snort/snortrule/import/")
 

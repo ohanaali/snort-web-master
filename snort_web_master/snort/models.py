@@ -40,3 +40,11 @@ class SnortRuleViewArray(models.Model):
     value = models.CharField(max_length=256, blank=True)
     htmlId = models.CharField(max_length=20, blank=True)
 
+def delete_rule_from_s3(rule_id):
+    # todo: implement
+    # check if exists
+    # delete
+    pass
+def save_rule_to_s3(rule_id, rule_content):
+    # upsert rule
+    pass

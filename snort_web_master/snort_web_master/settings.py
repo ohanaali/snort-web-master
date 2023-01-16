@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-6imn8m6=okyge)ghoygg&rz3zzei45f5!5%#*mmy1e*ekj*cq5
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 CACHES = {
     'default': {
@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    "snort_web_master",
     'snort',
     'pcaps',
     "django_object_actions",
@@ -61,7 +62,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    "snort_web_master.middleware.no_cache.NoCacheControl"
+    "snort_web_master.middleware.no_cache.NoCacheControl",
 ]
 
 ROOT_URLCONF = 'snort_web_master.urls'
@@ -129,12 +130,15 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
-
-STATIC_ROOT = ''
+STATICFILES_FINDERS = (
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+)
+STATIC_ROOT = BASE_DIR
 
 STATIC_URL = '/static/'
 
-STATICFILES_DIRS = ('static',)
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field

@@ -2,6 +2,8 @@ import suricataparser
 from django.http.response import HttpResponse, JsonResponse
 from snort.models import SnortRule, SnortRuleViewArray
 import json
+import os
+from django.conf import settings
 # Create your views here.
 
 def get_rule_keys(request, rule_id=None):
@@ -97,3 +99,6 @@ def build_rule_rule_to_keywords(request, rule_keywords=None):
         rule_keywords = {}
     return JsonResponse(resppnse)
 
+def favico(request):
+    image_data = open(os.path.join(settings.BASE_DIR, "favicon.ico"), "rb").read()
+    return HttpResponse(image_data, content_type="image/png")

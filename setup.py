@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='snort_web_master',
-    version='0.1.1.3',
+    version='0.1.2.1',
     license='MoCorp',
     author="meir dahan",
     author_email='1dahanmeir1@gmail.com',

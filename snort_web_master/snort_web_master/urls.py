@@ -15,12 +15,14 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from snort.views import get_rule, get_rule_keys, build_rule_keyword_to_rule, build_rule_rule_to_keywords
-
+from snort.views import get_rule, get_rule_keys, build_rule_keyword_to_rule, build_rule_rule_to_keywords, favico
+from django.conf import settings
+from django.conf.urls.static import static
 
 admin.site.site_header = 'snort web master'
 
 urlpatterns = [
+    path("favicon.ico", favico),
     path("get_rule_update/<int:rule_id>/", get_rule),
     path("get_rule_keywords/<int:rule_id>/", get_rule_keys),
     path('advanced_filters/', include("advanced_filters.urls")),
@@ -28,4 +30,4 @@ urlpatterns = [
     path("build_rule/rule_to_keywords", build_rule_rule_to_keywords),
     path('admin/', admin.site.urls),
     path("", admin.site.urls),
-]
+]+ static("/static/", document_root=settings.BASE_DIR) + static("/", document_root=settings.STATIC_ROOT)
