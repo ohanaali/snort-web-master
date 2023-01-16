@@ -39,3 +39,4 @@ class SnortRuleViewArray(models.Model):
     locationY = models.IntegerField()
     value = models.CharField(max_length=256, blank=True)
     htmlId = models.CharField(max_length=20, blank=True)
+

@@ -48,10 +48,11 @@ INSTALLED_APPS = [
     'pcaps',
     "django_object_actions",
     "settings",
-    "advanced_filters"
+    "advanced_filters",
+    'import_export'
 
 ]
-
+IMPORT_EXPORT_USE_TRANSACTIONS = True
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

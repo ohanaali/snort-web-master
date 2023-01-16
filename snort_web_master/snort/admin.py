@@ -1,9 +1,10 @@
 import copy
 import os
-import time
+import csv
+from io import StringIO
+from django.contrib import messages
 from functools import partial
-
-import cachetools
+from import_export.admin import ImportExportModelAdmin
 from django import forms
 from .models import SnortRule, SnortRuleViewArray
 from .snort_templates import types_list
@@ -12,16 +13,41 @@ from django.utils.encoding import smart_str
 from django.http.response import HttpResponse, HttpResponseRedirect
 from django.utils.html import mark_safe
 from django.db import transaction
-from django.views.decorators.cache import never_cache
+import suricataparser
+from snort.views import build_keyword_dict
 # Register your models here.
 from django.contrib import admin
 from django_object_actions import DjangoObjectActions
 import subprocess
-from settings.models import Setting, keywords
+from settings.models import Setting, keywords, attackGroup
 from django.shortcuts import render
 from pcaps.admin import verify_legal_pcap
 from advanced_filters.admin import AdminAdvancedFiltersMixin
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+from django.conf import settings
+from datetime import datetime
 
+
+class StoreAdminForm(forms.ModelForm):
+    ## add an extra field:
+    upfile = forms.FileField()
+
+    class Meta:
+        model = SnortRule
+        fields = "__all__"
+
+    def clean(self):
+        cleaned_data = super(StoreAdminForm, self).clean()
+
+        if "upfile" in self.changed_data:
+            ### file validation on file type etc here ..
+            ## file is valid:
+            ## next lines deal with the InMemoryUploadedFile Type
+            path = settings.MEDIA_ROOT.joinpath("___tmp___")
+            tmp = default_storage.save(path, ContentFile(cleaned_data["upfile"].read()))
+
+            ## ...
 
 BASE_FIELDS = [
     "id", "active", "is_template", "deleted", "admin_locked", 'name', "request_ref", "main_ref", "description",
@@ -38,7 +64,6 @@ BASE_BUILDER_KEY = ("action", "protocol", "srcipallow", "srcip", "srcportallow",
 INPUT_TYPE = ("srcip" , "srcport", "dstip", "dstport")
 from django.core.cache import cache
 # todo: upload unmanaged rule file
-# todo: export to csv
 
 class SnortRuleAdminForm(forms.ModelForm):
     def clean_user(self):
@@ -256,7 +281,7 @@ def validate_pcap_snort(pcaps, rule):
 
 
 @admin.register(SnortRule)
-class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, admin.ModelAdmin):
+class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, ImportExportModelAdmin, admin.ModelAdmin):
     list_filter = FILTER_FIELDS  # simple list filters
 
     # specify which fields can be selected in the advanced filter
@@ -272,15 +297,122 @@ class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, admin.Model
     form = SnortRuleAdminForm
     actions = ['make_published']
 
+    def export_action(self, request):
+        return self.export_data(SnortRule.objects.all())
+
+    @transaction.atomic
+    def import_action(self, request):
+        errors = False
+        if request.method == 'POST':
+            snort_rules_to_save = []
+            snort_rules_options_to_save = []
+            try:
+                csv_file = request.FILES['myfile']
+                if not csv_file.name.endswith('.csv'):
+                    messages.error(request, 'File is not CSV type')
+                    return HttpResponseRedirect("/admin/snort/snortrule/import/")
+                # if file is too large, return
+                if csv_file.multiple_chunks():
+                    messages.error(request, "Uploaded file is too big (%.2f MB)." % (csv_file.size / (1000 * 1000),))
+                    return HttpResponseRedirect("/admin/snort/snortrule/import/")
+
+                file_data = csv.DictReader(StringIO(csv_file.read().decode("utf-8")))
+                # loop over the lines and save them in db. If error , store as string and then display
+                for item in file_data:
+                    snort_rule = SnortRule()
+                    snort_rule.active = item["Active"]
+                    snort_rule.deleted = item["Deleted"]
+                    snort_rule.user = getattr(request.user, request.user.USERNAME_FIELD)
+                    snort_rule.description = item["Description"]
+                    snort_rule.extra = item["Extra"]
+                    if item.get("Group"):
+                        snort_rule.group = attackGroup.objects.get(name=item["Group"])
+                    snort_rule.name = item["Name"]
+                    if item.get("Id"):
+                        snort_rule.PK = item["Id"]
+                    snort_rule.content = item["Rule"]
+
+                    try:
+                        resppnse = {"data": []}
+                        try:
+                            rule_parsed = suricataparser.parse_rule(item["Rule"])
+                        except:
+                            raise Exception("bad rule format")
+                        build_keyword_dict(resppnse, rule_parsed)
+                        for item_data in resppnse["data"]:
+                            snort_rules_options_to_save.append(SnortRuleViewArray(**item_data))
+                        for op in rule_parsed.options:
+                            if op.name == "msg":
+                                if snort_rule.group:
+                                    op.value = snort_rule.group.name + " "
+                                else:
+                                    op.value = ""
+                                if snort_rule.name:
+                                    op.value += snort_rule.name
+                                continue
+                            if op.name == "sid":
+                                op.value = snort_rule.PK
+                                continue
+                            if op.name == "metadata":
+                                new_value = []
+                                user_applyed = False
+                                for item_metadata in op.value.data:
+                                    if item_metadata.strip("'").strip().startswith("group "):
+                                        if snort_rule.group:
+                                            new_value.append(f"group {snort_rule.group.name}")
+                                            continue
+                                    if item_metadata.strip("'").strip().startswith("name "):
+                                        new_value.append(f"name {snort_rule.name}")
+                                        continue
+                                    if item_metadata.strip("'").strip().startswith("description "):
+                                        new_value.append(f"description {snort_rule.description}")
+                                        continue
+                                    if item_metadata.strip("'").strip().startswith("employee "):
+                                        new_value.append(f"employee {snort_rule.user}")
+                                        user_applyed = False
+                                        continue
+                                    if item_metadata.strip("'").strip().startswith("document "):
+                                        snort_rule.main_ref = item_metadata.strip("'").strip().replace("document ", "")
+                                    if item_metadata.strip("'").strip().startswith("treatment "):
+                                        snort_rule.request_ref = item_metadata.strip("'").strip().replace("document ", "")
+                                    new_value.append(item_metadata)
+                                if not user_applyed:
+                                    new_value.append(f"employee {snort_rule.user}")
+                                op.value.data = new_value
+                                continue
+                        snort_rule.content = rule_parsed.build_rule()
+                        snort_rules_to_save.append(snort_rule)
+                    except Exception as e:
+                        errors = True
+                        messages.error(request, f"Unable to load rule {item['Name']}. {repr(e)}")
+                        pass
+
+            except Exception as e:
+                errors = True
+                messages.error(request, "Unable to upload file. " + repr(e))
+            if not errors:
+                for rule in snort_rules_to_save:
+                    rule.save()
+                for attr in snort_rules_options_to_save:
+                    attr.save()
+                return HttpResponseRedirect("/admin/snort/snortrule/")
+            return HttpResponseRedirect("/admin/snort/snortrule/import/")
+
+        return render(request, 'html/import.html')
+
     @admin.action(description='export selected snort to csv')
     def make_published(self, request, queryset):
+        return self.export_data(queryset)
+
+    def export_data(self, queryset):
         response = HttpResponse(
             content_type='application/force-download')  # mimetype is replaced by content_type for django 1.7
-        response['Content-Disposition'] = 'attachment; filename=%s' % smart_str("snort_export.csv")
-        str_content = "active,date,deleted,description,extra,group,name,id,user,content\n"
+        response['Content-Disposition'] = 'attachment; filename=%s' % smart_str(f"SnortRule-{datetime.now()}.csv")
+        str_content = "Active,Date,Deleted,Description,Extra,Group,Name,Id,User,Rule\n"
         for snort_item in queryset:
             content = snort_item.content.replace('"', "'")
-            my_list = [snort_item.active,snort_item.date,snort_item.deleted,snort_item.description,snort_item.extra,snort_item.group,snort_item.name,snort_item.pk,snort_item.user,content]
+            my_list = [snort_item.active, snort_item.date, snort_item.deleted, snort_item.description, snort_item.extra,
+                       snort_item.group, snort_item.name, snort_item.pk, snort_item.user, content]
             for item in my_list:
                 if isinstance(item, bool):
                     str_content += str(item) + ","
@@ -301,6 +433,7 @@ class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, admin.Model
         if 'delete_selected' in actions:
             del actions['delete_selected']
         return actions
+
     def snort_builder(self, obj):
         set_rule = cache.get(obj.id)
         if not set_rule:

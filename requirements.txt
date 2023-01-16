@@ -4,3 +4,4 @@ dpkt
 django-auth-ldap3-ad
 django-advanced-filters
 suricataparser
+django-import-export

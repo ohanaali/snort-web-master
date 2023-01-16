@@ -2,8 +2,6 @@ import suricataparser
 from django.http.response import HttpResponse, JsonResponse
 from snort.models import SnortRule, SnortRuleViewArray
 import json
-import time
-from suricataparser import parse_rule
 # Create your views here.
 
 def get_rule_keys(request, rule_id=None):
@@ -26,21 +24,34 @@ def build_rule_keyword_to_rule(request, full_rule=""):
         full_rule = json.loads(request.body.decode()).get("fule_rule")
     resppnse = {"data": []}
     rule_parsed = suricataparser.parse_rule(full_rule)
+    build_keyword_dict(resppnse, rule_parsed)
+    return JsonResponse(resppnse)
+
+
+def build_keyword_dict(resppnse, rule_parsed):
     rule_keywordss = [build_keyword_item("action", rule_parsed.action),
                       build_keyword_item("protocol", rule_parsed.header.split(" ")[0]),
-                      build_keyword_item("srcipallow", "!" if rule_parsed.header.split(" ")[1].startswith("!") else "-----"),
+                      build_keyword_item("srcipallow",
+                                         "!" if rule_parsed.header.split(" ")[1].startswith("!") else "-----"),
                       build_keyword_item("srcip", rule_parsed.header.split(" ")[1][1:] if rule_parsed.header.split(" ")[
                           1].startswith("!") else rule_parsed.header.split(" ")[1], item_type="input"),
-                      build_keyword_item("srcportallow", "!" if rule_parsed.header.split(" ")[2].startswith("!") else "-----"),
-                      build_keyword_item("srcport", rule_parsed.header.split(" ")[2][1:] if rule_parsed.header.split(" ")[
-                          2].startswith("!") else rule_parsed.header.split(" ")[2], item_type="input"),
+                      build_keyword_item("srcportallow",
+                                         "!" if rule_parsed.header.split(" ")[2].startswith("!") else "-----"),
+                      build_keyword_item("srcport",
+                                         rule_parsed.header.split(" ")[2][1:] if rule_parsed.header.split(" ")[
+                                             2].startswith("!") else rule_parsed.header.split(" ")[2],
+                                         item_type="input"),
                       build_keyword_item("direction", rule_parsed.header.split(" ")[3]),
-                      build_keyword_item("dstipallow", "!" if rule_parsed.header.split(" ")[4].startswith("!") else "-----"),
+                      build_keyword_item("dstipallow",
+                                         "!" if rule_parsed.header.split(" ")[4].startswith("!") else "-----"),
                       build_keyword_item("dstip", rule_parsed.header.split(" ")[4][1:] if rule_parsed.header.split(" ")[
                           4].startswith("!") else rule_parsed.header.split(" ")[4], item_type="input"),
-                      build_keyword_item("dstportallow", "!" if rule_parsed.header.split(" ")[5].startswith("!") else "-----"),
-                      build_keyword_item("dstport", rule_parsed.header.split(" ")[5][1:] if rule_parsed.header.split(" ")[
-                          5].startswith("!") else rule_parsed.header.split(" ")[5], item_type="input"),
+                      build_keyword_item("dstportallow",
+                                         "!" if rule_parsed.header.split(" ")[5].startswith("!") else "-----"),
+                      build_keyword_item("dstport",
+                                         rule_parsed.header.split(" ")[5][1:] if rule_parsed.header.split(" ")[
+                                             5].startswith("!") else rule_parsed.header.split(" ")[5],
+                                         item_type="input"),
                       ]
     i = 0
     op_num = 0
@@ -55,7 +66,7 @@ def build_rule_keyword_to_rule(request, full_rule=""):
                     if item.strip("'").strip().startswith(meta_value):
                         resppnse["metadata_" + meta_value.strip()] = item.strip("'").strip().replace(meta_value, "")
             continue
-        rule_keywordss.append(build_keyword_item("keyword_selection"+str(op_num), op.name,x=op_num, y=0))
+        rule_keywordss.append(build_keyword_item("keyword_selection" + str(op_num), op.name, x=op_num, y=0))
 
         if op.value:
             if op.value.startswith("!"):
@@ -64,13 +75,14 @@ def build_rule_keyword_to_rule(request, full_rule=""):
                                        item_type="input"))
                 op.value = op.value[1:]
             rule_keywordss.append(
-                build_keyword_item(f"keyword_selection{str(op_num)}" + "-data", op.value.strip('"'), x=op_num, y=0, item_type="input"))
+                build_keyword_item(f"keyword_selection{str(op_num)}" + "-data", op.value.strip('"'), x=op_num, y=0,
+                                   item_type="input"))
         op_num += 1
         i += 1
     for rule_key in rule_keywordss:
-        resppnse["data"].append({"htmlId": rule_key["htmlId"], "value": rule_key["value"], "typeOfItem": rule_key["typeOfItem"],
-                        "locationX": rule_key["locationX"], "locationY": rule_key["locationY"]})
-    return JsonResponse(resppnse)
+        resppnse["data"].append(
+            {"htmlId": rule_key["htmlId"], "value": rule_key["value"], "typeOfItem": rule_key["typeOfItem"],
+             "locationX": rule_key["locationX"], "locationY": rule_key["locationY"]})
 
 
 def build_keyword_item(my_id, value, item_type="select", x=0, y=0):
@@ -84,3 +96,4 @@ def build_rule_rule_to_keywords(request, rule_keywords=None):
     if not rule_keywords:
         rule_keywords = {}
     return JsonResponse(resppnse)
+
