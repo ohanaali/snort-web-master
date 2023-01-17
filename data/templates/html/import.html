@@ -1,0 +1,11 @@
+{% extends 'admin/base.html' %}
+
+{% block content %}
+{% load static %}
+<p style="color:red;">uploading a csv is an update/insert action<br><img width="50%" src="/static/admin/image/images.png"/></p>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="file" name="myfile">
+    <button type="submit">load csv</button>
+  </form>
+{% endblock %}

@@ -5,9 +5,12 @@ setup.cfg
 setup.py
 data/db.sqlite3
 data/dicts.py
+data/favicon.ico
 data/my-snort-rule.tmp
 data/requirements.txt
+data/admin/image/images.png
 data/templates/html/full_rule.html
+data/templates/html/import.html
 data/templates/html/snortBuilder.html
 snort_web_master/pcaps/__init__.py
 snort_web_master/pcaps/admin.py
