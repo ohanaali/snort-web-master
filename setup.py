@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='snort_web_master',
-    version='0.1.2.2',
+    version='0.1.2.3',
     license='MoCorp',
     author="meir dahan",
     author_email='1dahanmeir1@gmail.com',
@@ -15,9 +15,12 @@ setup(
     include_package_data=True,
     install_requires=[
           'django',
-'django-auth-ldap3-ad',
-'django-object-actions','dpkt',
-
+          'django-auth-ldap3-ad',
+          'django-object-actions',
+          'dpkt',
+          'django-advanced-filters',
+          'suricataparser',
+          'django-import-export'
       ],
 
 )
