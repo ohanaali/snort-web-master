@@ -21,14 +21,14 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 admin.site.site_header = 'snort web master'
-
+app_name = "snort_web_master"
 urlpatterns = [
     path("favicon.ico", favico),
-    path("get_rule_update/<int:rule_id>/", get_rule),
-    path("get_rule_keywords/<int:rule_id>/", get_rule_keys),
-    path('advanced_filters/', include("advanced_filters.urls")),
-    path("build_rule/keyword_to_rule", build_rule_keyword_to_rule),
-    path("build_rule/rule_to_keywords", build_rule_rule_to_keywords),
-    path('admin/', admin.site.urls),
-    path('', lambda request: redirect('admin/', permanent=True)),
+    path("get_rule_update/<int:rule_id>/", get_rule, name="get_rule_update"),
+    path("get_rule_keywords/<int:rule_id>/", get_rule_keys,name="get_rule_keywords"),
+    path('advanced_filters/', include("advanced_filters.urls"), name="advance_filter"),
+    path("build_rule/keyword_to_rule", build_rule_keyword_to_rule,name="build_rule"),
+    path("build_rule/rule_to_keywords", build_rule_rule_to_keywords,name="build_keyword"),
+    path('admin/', admin.site.urls, name="admin_main"),
+    path('', lambda request: redirect('admin/', permanent=True), name="root"),
 ]+ static("static/", document_root=settings.STATIC_ROOT) + static("/", document_root=settings.BASE_DIR)

@@ -4,8 +4,9 @@ from setuptools import setup, find_packages
 
 setup(
     name='snort_web_master',
-    version='0.2.0.0',
+    version='0.2.0.1',
     license='MoCorp',
+    readme="README.md",
     author="meir dahan",
     author_email='1dahanmeir1@gmail.com',
     packages=find_packages('snort_web_master'),
