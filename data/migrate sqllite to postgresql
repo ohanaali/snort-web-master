@@ -1,0 +1,28 @@
+python manage.py dumpdata > whole.json
+sudo su — postgres
+psql
+create user john;create database nw_db;alter role hero with password ‘new_db@123’;grant all privileges on database new_db to john;alter database new_db owner to john;
+# install this package
+pip install psycopg2
+settings.py
+DATABASES = {
+‘default’: {
+‘ENGINE’: ‘django.db.backends.postgresql_psycopg2’,
+‘NAME’: ‘new_db’,
+‘USER’ : ‘john’,
+‘PASSWORD’ : ‘new_db@123’,
+‘HOST’ : ‘localhost’,
+‘PORT’ : ‘5452’,
+}
+}
+find . -path “*/migrations/*.py” -not -name “__init__.py” -delete
+find . -path “*/migrations/*.pyc” -delete
+do
+python manage.py makemigrations
+python manage.py migrate
+
+python manage.py shell
+from django.contrib.contenttypes.models import ContentType
+ContentType.objects.all().delete()
+
+python manage.py loaddata fixture/whole.json

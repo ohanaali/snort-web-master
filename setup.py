@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='snort_web_master',
-    version='0.1.2.3',
+    version='0.2.0.0',
     license='MoCorp',
     author="meir dahan",
     author_email='1dahanmeir1@gmail.com',
@@ -20,7 +20,9 @@ setup(
           'dpkt',
           'django-advanced-filters',
           'suricataparser',
-          'django-import-export'
+          'django-import-export',
+          "psycopg2-binary==2.9.1",
+          "gunicorn==20.1.0"
       ],
 
 )

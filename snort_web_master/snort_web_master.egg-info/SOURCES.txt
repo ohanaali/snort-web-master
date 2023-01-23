@@ -5,10 +5,15 @@ setup.cfg
 setup.py
 data/db.sqlite3
 data/dicts.py
+data/dockercompose
 data/favicon.ico
+data/migrate sqllite to postgresql
 data/my-snort-rule.tmp
 data/requirements.txt
+data/snortFile
 data/admin/image/images.png
+data/nginx/nginx
+data/nginx/nginx.conf
 data/templates/html/full_rule.html
 data/templates/html/import.html
 data/templates/html/snortBuilder.html

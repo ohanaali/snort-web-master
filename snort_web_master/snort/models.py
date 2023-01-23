@@ -38,7 +38,7 @@ class SnortRuleViewArray(models.Model):
     locationX = models.IntegerField()
     locationY = models.IntegerField()
     value = models.CharField(max_length=256, blank=True)
-    htmlId = models.CharField(max_length=20, blank=True)
+    htmlId = models.CharField(max_length=50, blank=True)
 
 def delete_rule_from_s3(rule_id):
     # todo: implement

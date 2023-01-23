@@ -2,3 +2,8 @@ django
 django-auth-ldap3-ad
 django-object-actions
 dpkt
+django-advanced-filters
+suricataparser
+django-import-export
+psycopg2-binary==2.9.1
+gunicorn==20.1.0

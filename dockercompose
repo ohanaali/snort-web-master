@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: ./snort_web_master
+      dockerfile: ../snortFile
+    volumes:
+      - D:\snort_web_master\snort_web_master\pacp_repo:/app/pacp_repo
+    expose:
+      - 8000
+    env_file:
+      - ./.env.dev
+    depends_on:
+      - db
+  db:
+    image: postgres:13.0-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=hello_django
+      - POSTGRES_PASSWORD=hello_django
+      - POSTGRES_DB=hello_django_dev
+  nginx:
+    build:
+      context: ./data/nginx
+      dockerfile: ./nginx
+    ports:
+      - 8000:80
+    depends_on:
+      - web
+volumes:
+  postgres_data:

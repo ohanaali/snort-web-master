@@ -15,6 +15,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.shortcuts import redirect
 from snort.views import get_rule, get_rule_keys, build_rule_keyword_to_rule, build_rule_rule_to_keywords, favico
 from django.conf import settings
 from django.conf.urls.static import static
@@ -29,5 +30,5 @@ urlpatterns = [
     path("build_rule/keyword_to_rule", build_rule_keyword_to_rule),
     path("build_rule/rule_to_keywords", build_rule_rule_to_keywords),
     path('admin/', admin.site.urls),
-    path("", admin.site.urls),
-]+ static("/static/", document_root=settings.BASE_DIR) + static("/", document_root=settings.STATIC_ROOT)
+    path('', lambda request: redirect('admin/', permanent=True)),
+]+ static("static/", document_root=settings.STATIC_ROOT) + static("/", document_root=settings.BASE_DIR)
