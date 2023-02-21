@@ -52,6 +52,7 @@ snort_web_master/snort/migrations/0002_snortruleviewarray.py
 snort_web_master/snort/migrations/0003_snortruleviewarray_htmlid_and_more.py
 snort_web_master/snort/migrations/0004_snortrule_deleted.py
 snort_web_master/snort/migrations/0005_remove_snortrule_template_snortrule_is_template.py
+snort_web_master/snort/migrations/0006_rename_main_ref_snortrule_document_and_more.py
 snort_web_master/snort/migrations/__init__.py
 snort_web_master/snort_web_master/__init__.py
 snort_web_master/snort_web_master/asgi.py
