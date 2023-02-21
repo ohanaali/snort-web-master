@@ -91,6 +91,7 @@ function add_text_box_if_needed(input_id, selection, current_index_i, item_index
         var my_index = j[current_index_i];
         input_not.type = "select";
         input_not.id = input_not.name = "keyword" + current_index_i + "-not"
+        input_not.onchange = function(){setTimeout(() => { build_rule();}, 50);};
         let not_opt_blank = document.createElement('option');
         not_opt_blank.value = "-----";
         not_opt_blank.textContent = "-----";
@@ -147,6 +148,7 @@ function add_text_box_if_needed(input_id, selection, current_index_i, item_index
                     }
                     }
             });
+            build_rule()
         }
     }
 }
@@ -262,6 +264,7 @@ function add_option_keyword(manual=false, input_id="", x=-1, y=-1, selected_valu
     if (my_i === i){
         i = i + 1;
     }
+    build_rule()
 }
 
 function sleep(ms) {
@@ -345,8 +348,8 @@ function selectElementManual(id, valueToSelect, htmlType, x, y, count=40, clicke
     }
     else if (element !== null){
         element.value = valueToSelect;
-        element.onchange = function(){setTimeout(build_rule(), 50);};
-        element.oninput = function(){setTimeout(build_rule(), 50);};
+        element.onchange = function(){setTimeout(() => { build_rule();}, 50);};
+        element.oninput = function(){setTimeout(() => { build_rule();}, 50);};
     }
     else {
         setTimeout(() => {  selectElementManual(id, valueToSelect, htmlType, x, y, count-1, true) }, 10);
@@ -366,45 +369,45 @@ function selectElementManual(id, valueToSelect, htmlType, x, y, count=40, clicke
             <option value="{{ protocol.name}}">{{ protocol.name }}</option>
         {% endfor %}
     </select>
-    <select id="srcipallow" name="srcipallow" class="srcipallow-dropdown" onblur="build_rule();" >
+    <select id="srcipallow" name="srcipallow" class="srcipallow-dropdown" onchange="build_rule(e)" onblur="build_rule();" >
         <option value="-----">-----</option>
         <option value="!">!</option>
     </select>
     <lable id="srciperror"></lable>
 
-    <input id="srcip" name="srcip" onfocusout="checkip('srcip', 'srciperror')" class="srcip-text"  onblur="build_rule();" />
+    <input id="srcip" name="srcip" value="any" onfocusout="checkip('srcip', 'srciperror')" class="srcip-text" onchange="build_rule(e)" onblur="build_rule();" />
 
-    <select id="srcportallow" name="srcportallow" class="srcportallow-dropdown" onblur="build_rule();" >
+    <select id="srcportallow" name="srcportallow" class="srcportallow-dropdown" onchange="build_rule(e)" onblur="build_rule();" >
         <option value="-----">-----</option>
         <option value="!">!</option>
     </select>
     <lable id="srcporterror"></lable>
-    <input id="srcport" name="srcport" onfocusout="checkport('srcport', 'srcporterror')" class="srcport-text"  onblur="build_rule();" />
+    <input id="srcport" name="srcport" value="any" onfocusout="checkport('srcport', 'srcporterror')" class="srcport-text" onchange="build_rule(e)" onblur="build_rule();" />
 
-    <select id="direction" name="direction" class="direction-dropdown" onblur="build_rule();" >
+    <select id="direction" name="direction" class="direction-dropdown" onblur="build_rule();" onchange="build_rule(e)">
         <option value="->">-></option>
         <option value="<>"><></option>
     </select>
-    <select id="dstipallow" name="dstipallow" class="srcipallow-dropdown" onblur="build_rule();" >
+    <select id="dstipallow" name="dstipallow" class="srcipallow-dropdown" onblur="build_rule();" onchange="build_rule(e)">
         <option value="-----">-----</option>
         <option value="!">!</option>
     </select>
     <lable id="dstiperror"></lable>
-    <input id="dstip" name="dstip" onfocusout="checkip('dstip', 'dstiperror')" class="dstip-dropdown"  onblur="build_rule();" />
+    <input id="dstip" name="dstip" value="any"  onfocusout="checkip('dstip', 'dstiperror')" class="dstip-dropdown" onchange="build_rule()" onblur="build_rule();" />
 
-    <select id="dstportallow" name="dstportallow" class="srcportallow-dropdown"  onblur="build_rule();">
+    <select id="dstportallow" name="dstportallow" class="srcportallow-dropdown" onchange="build_rule()" onblur="build_rule();">
         <option value="-----">-----</option>
         <option value="!">!</option>
     </select>
     <lable id="dstporterror"></lable>
 
-    <input id="dstport" name="dstport" onfocusout="checkport('dstport', 'dstporterror')"  class="dstport-text"  onblur="build_rule();" />
+    <input id="dstport" name="dstport" value="any"  onfocusout="checkport('dstport', 'dstporterror')"  class="dstport-text" onchange="build_rule()" onblur="build_rule();" />
     <br>
 <div id="ruleform">
 
 
 </div>
-    <img type="image" id="keyword_selection_plus" src="/static/admin/img/icon-addlink.svg" name="add option" onclick="add_option_keyword();" onblur="build_rule();">
+    <img type="image" id="keyword_selection_plus" src="/static/admin/img/icon-addlink.svg" name="add option" onclick="add_option_keyword();" onblur="set_build_rule(e);">
 <script>
 
 // Example POST method implementation:
@@ -443,6 +446,13 @@ function set_content_change(e){
     }
     my_inputs[e.target.id] = setTimeout(() => { content_change()}, 500);
 }
+function set_build_rule(e){
+    if (my_inputs[e.target.id]!== undefined){
+        clearTimeout(my_inputs[e.target.id]);
+    }
+    my_inputs[e.target.id] = setTimeout(() => { build_rule()}, 500);
+}
+
    var id_content = document.getElementById("id_content");
 postData("/build_rule/keyword_to_rule", {"fule_rule": id_content.textContent})
  .then((data) =>
@@ -458,34 +468,34 @@ postData("/build_rule/keyword_to_rule", {"fule_rule": id_content.textContent})
             set_content_change(e)
         };
     document.getElementById("id_description").oninput = function(e){
-            set_content_change(e)
+            set_build_rule(e)
         };
     document.getElementById("id_description").onblur = function(e){
-            set_content_change(e)
+            set_build_rule(e)
         };
     document.getElementById("id_name").oninput = function(e){
-            set_content_change(e)
+            set_build_rule(e)
         };
     document.getElementById("id_name").onblur = function(e){
-            set_content_change(e)
+            set_build_rule(e)
         };
     document.getElementById("id_group").onchange = function(e){
-            set_content_change(e)
+            set_build_rule(e)
         };
     document.getElementById("id_group").onblur = function(e){
-            set_content_change(e)
+            set_build_rule(e)
         };
-    document.getElementById("id_main_ref").oninput = function(e){
-            set_content_change(e)
+    document.getElementById("id_treatment").oninput = function(e){
+            set_build_rule(e)
         };
-    document.getElementById("id_main_ref").onblur = function(e){
-            set_content_change(e)
+    document.getElementById("id_treatment").onblur = function(e){
+            set_build_rule(e)
         };
-    document.getElementById("id_request_ref").oninput = function(e){
-            set_content_change(e)
+    document.getElementById("id_document").oninput = function(e){
+            set_build_rule(e)
         };
-    document.getElementById("id_request_ref").onblur = function(e){
-            set_content_change(e)
+    document.getElementById("id_document").onblur = function(e){
+            set_build_rule(e)
         };
 }
  );
@@ -501,16 +511,16 @@ function content_change(){
             selectElementManual(els.htmlId, els.value, els.typeOfItem, els.locationX, els.locationY);
         };
         if (data.metadata_description !== undefined){
-            document.getElementById("id_description").value = data.metadata_description
+            document.getElementById("id_description").value = data.metadata_description.trim("'")
         };
         if (data.metadata_document !== undefined){
-            document.getElementById("id_request_ref").value = data.metadata_description
+            document.getElementById("id_document").value = data.metadata_document.trim("'")
         };
         if (data.metadata_treatment !== undefined){
-            document.getElementById("id_main_ref").value = data.metadata_description
+            document.getElementById("id_treatment").value = data.metadata_treatment.trim("'")
         };
         if (data.metadata_name !== undefined){
-            document.getElementById("id_name").value = data.metadata_description
+            document.getElementById("id_name").value = data.metadata_name.trim("'")
         };
         if (data.metadata_group !== undefined){
             var group_select = document.getElementById("id_group")
@@ -529,13 +539,13 @@ function content_change(){
     }
     );
  };
-  var id_content = document.getElementById("id_content");
-  id_content.onblur = function(e){
-            set_content_change(e)
-        };
-  id_content.oninput = function(e){
-            set_content_change(e)
-        };
-
+var id_content = document.getElementById("id_content");
+id_content.onblur = function(e){
+  set_content_change(e)
+};
+id_content.oninput = function(e){
+  set_content_change(e)
+};
+setTimeout(() => { build_rule();}, 1000)
 
 </script>

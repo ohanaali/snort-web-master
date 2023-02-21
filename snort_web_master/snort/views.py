@@ -25,12 +25,18 @@ def build_rule_keyword_to_rule(request, full_rule=""):
     if not full_rule:
         full_rule = json.loads(request.body.decode()).get("fule_rule")
     resppnse = {"data": []}
-    rule_parsed = suricataparser.parse_rule(full_rule)
+    rule_parsed = suricataparser.parse_rule(full_rule.replace("sid:-;", ""))
     build_keyword_dict(resppnse, rule_parsed)
     return JsonResponse(resppnse)
 
 
+def get_current_user_name(request):
+    return JsonResponse({"user": getattr(request.user, request.user.USERNAME_FIELD)})
+
+
 def build_keyword_dict(resppnse, rule_parsed):
+    if not rule_parsed:
+        return
     rule_keywordss = [build_keyword_item("action", rule_parsed.action),
                       build_keyword_item("protocol", rule_parsed.header.split(" ")[0]),
                       build_keyword_item("srcipallow",

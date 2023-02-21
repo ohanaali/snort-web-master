@@ -21,7 +21,7 @@ class SnortTestCase(TestCase):
         self.at.save()
         self.rule = SnortRule.objects.create(id=10, group=self.at, active=True, admin_locked=False, user="me", name="rule_name",
                                  content="alert TCP any any -> any any(msg: 65456;pcre: !'234234';sid:3; metadata: 'employee snort-master, group , name 65456, treatment , keywords 'None', date 1673248313409, document ,' description 345345345';)",
-                                 description="desc", extra="extra", location="wtf", request_ref="123", main_ref="123",
+                                 description="desc", extra="extra", location="wtf", document="123", treatment="123",
                                  is_template=False, deleted=False)
 
     def tearDown(self) -> None:

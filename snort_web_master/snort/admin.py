@@ -50,14 +50,15 @@ class StoreAdminForm(forms.ModelForm):
 
             ## ...
 
+
 BASE_FIELDS = [
-    "id", "active", "is_template", "deleted", "admin_locked", 'name', "request_ref", "main_ref", "description",
-    "extra", "location", "user"]
+    "id", "active", "is_template", "deleted", "admin_locked", 'name', "document", "treatment", "description",
+    "extra", "user"]
 FILTER_FIELDS = ("active", "is_template", "deleted", "admin_locked")
 ADVANCE_FILTER_FIELDS = tuple(i for i in BASE_FIELDS + ["content", ("pcap_sanity_check__name", "pcap_sanity_check_name"), ("pcap_legal_check__name", "pcap_legal_check_name"),("group_name", "group_name")])
 FIELDS = [
-    "id", "content", "active", "is_template", "deleted", "admin_locked", 'name', "request_ref", "main_ref", "snort_builder", "description",
-    "group", "extra", "location", "user", 'pcap_sanity_check', "pcap_legal_check", ]
+    "id", "content", "active", "is_template", "deleted", "admin_locked", 'name', "document", "treatment", "snort_builder", "description",
+    "group", "extra", "user", "rule_validation_section",'pcap_sanity_check', "pcap_legal_check", ]
 SEARCH_FIELDS = tuple(i for i in BASE_FIELDS + ["content", "pcap_sanity_check__name", "pcap_legal_check__name", "group__name"])
 BASE_BUILDER_KEY = ("action", "protocol", "srcipallow", "srcip", "srcportallow", "srcport", "direction", "dstipallow",
                     "dstportallow", "dstport")
@@ -82,7 +83,15 @@ class SnortRuleAdminForm(forms.ModelForm):
         try:
             parser = Parser(self.data["content"])
             parser.parse_header()
-            parser.parse_options()
+            options = parser.parse_options()
+            for option in options:
+                try:
+                    if keywords.objects.get(name=options[option][0]):
+                        break
+                except:
+                    pass
+            else:
+                raise Exception("no content; please add at least one keyword")
         except Exception as e:
             raise forms.ValidationError(e)
 
@@ -100,7 +109,7 @@ class SnortRuleAdminForm(forms.ModelForm):
         return self.cleaned_data["location"]
 
     def clean_is_template(self):
-        if not self.cleaned_data.get("is_template"):
+        if self.cleaned_data.get("is_template"):
             self.cleaned_data["active"] = False
         return self.cleaned_data.get("is_template")
 
@@ -120,11 +129,11 @@ class SnortRuleAdminForm(forms.ModelForm):
         cur_rule.location = self.data.get("location")
         cur_rule.group = self.instance.group
         cur_rule.id = self.data.get("id")
-        cur_rule.main_ref = self.data.get("main_ref")
+        cur_rule.treatment = self.data.get("treatment")
         cur_rule.name = self.data.get("name")
         cur_rule.type = self.data.get("type")
-        cur_rule.user = self.data.get("user")
-        cur_rule.request_ref = self.data.get("request_ref")
+        cur_rule.user = getattr(self.current_user, self.current_user.USERNAME_FIELD)
+        cur_rule.document = self.data.get("document")
 
         validate_pcap_snort(self.cleaned_data.get("pcap_sanity_check"), cur_rule)
         return self.cleaned_data["pcap_sanity_check"]
@@ -148,11 +157,11 @@ class SnortRuleAdminForm(forms.ModelForm):
         cur_rule.location = self.data.get("location")
         cur_rule.group = self.data.get("group")
         cur_rule.id = self.data.get("id")
-        cur_rule.main_ref = self.data.get("main_ref")
+        cur_rule.treatment = self.data.get("treatment")
         cur_rule.name = self.data.get("name")
         cur_rule.type = self.data.get("type")
-        cur_rule.user = self.data.get("user")
-        cur_rule.request_ref = self.data.get("request_ref")
+        cur_rule.user = getattr(self.current_user, self.current_user.USERNAME_FIELD)
+        cur_rule.document = self.data.get("document")
 
         count = validate_pcap_snort(self.cleaned_data.get("pcap_legal_check"), cur_rule)
         max_allowd = self.cleaned_data["MAX_MATCH_ALLOWD"]
@@ -282,6 +291,9 @@ def validate_pcap_snort(pcaps, rule):
     return stdout
 
 
+
+
+
 @admin.register(SnortRule)
 class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, ImportExportModelAdmin, admin.ModelAdmin):
     list_filter = FILTER_FIELDS  # simple list filters
@@ -298,6 +310,9 @@ class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, ImportExpor
     search_fields = SEARCH_FIELDS
     form = SnortRuleAdminForm
     actions = ['make_published']
+
+    def rule_validation_section(self, request):
+        return mark_safe('<hr style="height:3px;width:100%;border-width:100%;color:green;background-color:green"/>')
 
     def export_action(self, request):
         return self.export_data(SnortRule.objects.all())
@@ -379,9 +394,9 @@ class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, ImportExpor
                                         user_applyed = False
                                         continue
                                     if item_metadata.strip("'").strip().startswith("document "):
-                                        snort_rule.main_ref = item_metadata.strip("'").strip().replace("document ", "")
+                                        snort_rule.treatment = item_metadata.strip("'").strip().replace("document ", "")
                                     if item_metadata.strip("'").strip().startswith("treatment "):
-                                        snort_rule.request_ref = item_metadata.strip("'").strip().replace("document ", "")
+                                        snort_rule.document = item_metadata.strip("'").strip().replace("document ", "")
                                     new_value.append(item_metadata)
                                 if not user_applyed:
                                     new_value.append(f"employee {snort_rule.user}")
@@ -507,11 +522,11 @@ class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, ImportExpor
     def get_readonly_fields(self, request, obj=None):
         if obj and (obj.is_template or obj.admin_locked):
             read_only_fields = (
-            "id", "active", 'location', "user", "admin_locked", "snort_builder", "deleted")
+            "id", "active", "user", "admin_locked", "snort_builder", "deleted", "rule_validation_section",)
         else:
-            read_only_fields = ("id", 'location', "user", "admin_locked", "snort_builder", "deleted")
+            read_only_fields = ("id", "user", "admin_locked", "snort_builder", "deleted", "rule_validation_section")
 
         return read_only_fields
 
-    # readonly_fields = ("id", 'location', "user", "admin_locked", "full_rule", "snort_builder", "deleted")
+    # readonly_fields = ("id", "user", "admin_locked", "full_rule", "snort_builder", "deleted")
     clone_rule.short_description = "clone rule to a new rule"  # optional

@@ -16,7 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import redirect
-from snort.views import get_rule, get_rule_keys, build_rule_keyword_to_rule, build_rule_rule_to_keywords, favico
+from snort.views import get_rule, get_rule_keys, build_rule_keyword_to_rule, build_rule_rule_to_keywords, favico,get_current_user_name
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -29,6 +29,7 @@ urlpatterns = [
     path('advanced_filters/', include("advanced_filters.urls"), name="advance_filter"),
     path("build_rule/keyword_to_rule", build_rule_keyword_to_rule,name="build_rule"),
     path("build_rule/rule_to_keywords", build_rule_rule_to_keywords,name="build_keyword"),
+    path("current_user_name", get_current_user_name, name="get_current_user_name"),
     path('admin/', admin.site.urls, name="admin_main"),
-    path('', lambda request: redirect('admin/', permanent=True), name="root"),
+    path('',  admin.site.urls, name="admin_main"),
 ]+ static("static/", document_root=settings.STATIC_ROOT) + static("/", document_root=settings.BASE_DIR)
