@@ -1,1 +1,0 @@
-alert TCP $HTTP_PORT any -> any any(msg: 65456;sid:3; metadata: 'employee 0, group , name 65456, treatment , keywords 'None', date 1673011996873, document ,' description 345345345';)

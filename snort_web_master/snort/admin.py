@@ -198,9 +198,14 @@ class SnortRuleAdminForm(forms.ModelForm):
     def clean(self):
         try:
             self.instance.user = self.clean_user()
+        except Exception as e:
+            self.add_error("user", e)
+        try:
             self.instance.content = self.clean_content()
         except Exception as e:
-            self.add_error(None, e)
+            if not self.errors:
+                self.add_error("content", e)
+
         rule_keys = []
         self.instance.deleted = False
         if not self.instance.pk and not self.errors:
@@ -305,11 +310,11 @@ class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, ImportExpor
     # changelist_actions = ('load_template',)
     fields = FIELDS
     filter_horizontal = ('pcap_sanity_check', "pcap_legal_check")
-    list_display_links = ("name",)
-    list_display = ("id", "user", "active", "name", "group", "description", "content", "date", "is_template")
+    list_display_links = ("id", "user", "name", "content", "description")
+    list_display = ("id", "user", "active", "name", "group", "description", "content", "date", "is_template", "deleted")
     search_fields = SEARCH_FIELDS
     form = SnortRuleAdminForm
-    actions = ['make_published']
+    actions = ['make_published', "make_delete", "make_clone"]
 
     def rule_validation_section(self, request):
         return mark_safe('<hr style="height:3px;width:100%;border-width:100%;color:green;background-color:green"/>')
@@ -345,7 +350,7 @@ class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, ImportExpor
                     if item.get("Group"):
                         snort_rule.group = attackGroup.objects.get(name=item["Group"])
                     snort_rule.name = item["Name"]
-                    if item.get("Id"):
+                    if item.get("Id") and item.get("Update") and request.user.is_superuser:
                         snort_rule.id = item["Id"]
                     else:
                         temp_id = str(time.time())
@@ -445,6 +450,33 @@ class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, ImportExpor
 
         return render(request, 'html/import.html')
 
+    @admin.action(description='Mark selected snort rule as deleted')
+    def make_delete(self, request, queryset):
+        for rule in queryset:
+            rule.delete()
+        return HttpResponseRedirect("/admin/snort/snortrule/")
+
+    @admin.action(description='clone selected rule (1 only)')
+    def make_clone(self, request, queryset):
+        if len(queryset) > 1:
+            messages.error(request, "cannot clone more than 1 rule at a time")
+            return
+        if len(queryset) == 0:
+            messages.error(request, "need exactly 1 rule to clone")
+            return
+        for rule in queryset:
+            self.request = request
+            self.request.session["cloned_rule"] = {"cloned_rule": True,
+                           "rule_conetnt": rule.content,
+                           "rule_description": rule.description,
+                           "rule_name": rule.name,
+                           "rule_treatment": rule.treatment,
+                           "rule_document": rule.document}
+        request.path = "/admin/snort/snortrule/add/"
+        request.path_info = "/admin/snort/snortrule/add/"
+        request.method = "GET"
+        return self.changeform_view(request, object_id=None)
+
     @admin.action(description='export selected snort to csv')
     def make_published(self, request, queryset):
         return self.export_data(queryset)
@@ -486,36 +518,31 @@ class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, ImportExpor
             cache.set(obj.id, set_rule)
         else:
             cache.set(obj.id, [])
-        context = copy.deepcopy(self.context)
+        context = {}
         context["build_items"] = set_rule
-        snort_buider_section = self.snort_buider_section(context).content.decode("utf-8")
-        return mark_safe(self.full_rule_js.content.decode("utf-8") + snort_buider_section)
+        context["actions"] = keywords.objects.filter(stage="action", avalable="True"),
+        context["protocols"] = keywords.objects.filter(stage="protocol", avalable="True")
+
+        tmp_context = copy.deepcopy(self.request.session.get("cloned_rule", {}))
+        self.request.session["cloned_rule"] = {}
+        tmp_context.update(context)
+
+
+        snort_buider_section = render(self.request, "html/snortBuilder.html", tmp_context).content.decode("utf-8")
+        full_rule_js = render(self.request, "html/full_rule.html")
+        return mark_safe(full_rule_js.content.decode("utf-8") + snort_buider_section)
 
     def get_form(self, request, *args, **kwargs):
         form = super(SnortRuleAdmin, self).get_form(request, **kwargs)
         form.current_user = request.user
-        context = {"actions": keywords.objects.filter(stage="action", avalable="True"),
-                   "protocols": keywords.objects.filter(stage="protocol", avalable="True")}
-        self.snort_buider_section = partial(render, request, "html/snortBuilder.html")
-        self.full_rule_js = render(request, "html/full_rule.html")
-        self.context = context
+        self.request = request
+        form.base_fields["pcap_sanity_check"].help_text = "Hold down “Control” to select more than one."
+        form.base_fields["pcap_legal_check"].help_text = "Hold down “Control” to select more than one."
         return form
 
     @transaction.atomic
     def clone_rule(self, request, obj: SnortRule):
-        new_snort = SnortRule.objects.get(pk=obj.id)
-        new_snort.pk = None
-        new_snort.is_template = False
-        new_snort.active = False
-        new_snort.deleted = False
-        new_snort.user = getattr(request.user, request.user.USERNAME_FIELD)
-        new_snort.save()
-        for keyword in SnortRuleViewArray.objects.filter(snortId=obj.id):
-            keyword.pk = None
-            keyword.snortId = new_snort
-            keyword.save()
-
-        return HttpResponseRedirect(f"/snort/snortrule/{new_snort.pk}/change")
+        return HttpResponseRedirect(f"/snort/snortrule/add/")
 
     clone_rule.label = "clone_rule"  # optional
 
@@ -530,3 +557,4 @@ class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, ImportExpor
 
     # readonly_fields = ("id", "user", "admin_locked", "full_rule", "snort_builder", "deleted")
     clone_rule.short_description = "clone rule to a new rule"  # optional
+

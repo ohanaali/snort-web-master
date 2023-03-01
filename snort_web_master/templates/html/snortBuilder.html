@@ -148,7 +148,6 @@ function add_text_box_if_needed(input_id, selection, current_index_i, item_index
                     }
                     }
             });
-            build_rule()
         }
     }
 }
@@ -264,7 +263,6 @@ function add_option_keyword(manual=false, input_id="", x=-1, y=-1, selected_valu
     if (my_i === i){
         i = i + 1;
     }
-    build_rule()
 }
 
 function sleep(ms) {
@@ -357,57 +355,57 @@ function selectElementManual(id, valueToSelect, htmlType, x, y, count=40, clicke
 }
 
 </script>
-    <select id="action" name="action" class="action-dropdown" onblur="build_rule();" >
+    <select id="action" name="action" class="action-dropdown" onblur="set_build_rule();" >
         <option value="-----">-----</option>
         {% for action in actions %}
             <option value="{{ action.name}}">{{ action.name }}</option>
         {% endfor %}
     </select>
-    <select id="protocol" name="protocol" class="protocol-dropdown" onblur="build_rule();" >
+    <select id="protocol" name="protocol" class="protocol-dropdown" onblur="set_build_rule();" >
         <option value="-----">-----</option>
         {% for protocol in protocols %}
             <option value="{{ protocol.name}}">{{ protocol.name }}</option>
         {% endfor %}
     </select>
-    <select id="srcipallow" name="srcipallow" class="srcipallow-dropdown" onchange="build_rule(e)" onblur="build_rule();" >
+    <select id="srcipallow" name="srcipallow" class="srcipallow-dropdown" onchange="set_build_rule()" onblur="set_build_rule();" >
         <option value="-----">-----</option>
         <option value="!">!</option>
     </select>
     <lable id="srciperror"></lable>
 
-    <input id="srcip" name="srcip" value="any" onfocusout="checkip('srcip', 'srciperror')" class="srcip-text" onchange="build_rule(e)" onblur="build_rule();" />
+    <input id="srcip" name="srcip" value="any" onfocusout="checkip('srcip', 'srciperror')" class="srcip-text" onchange="set_build_rule()" onblur="set_build_rule();" />
 
-    <select id="srcportallow" name="srcportallow" class="srcportallow-dropdown" onchange="build_rule(e)" onblur="build_rule();" >
+    <select id="srcportallow" name="srcportallow" class="srcportallow-dropdown" onchange="set_build_rule()" onblur="set_build_rule();" >
         <option value="-----">-----</option>
         <option value="!">!</option>
     </select>
     <lable id="srcporterror"></lable>
-    <input id="srcport" name="srcport" value="any" onfocusout="checkport('srcport', 'srcporterror')" class="srcport-text" onchange="build_rule(e)" onblur="build_rule();" />
+    <input id="srcport" name="srcport" value="any" onfocusout="checkport('srcport', 'srcporterror')" class="srcport-text" onchange="set_build_rule()" onblur="set_build_rule();" />
 
-    <select id="direction" name="direction" class="direction-dropdown" onblur="build_rule();" onchange="build_rule(e)">
+    <select id="direction" name="direction" class="direction-dropdown" onblur="set_build_rule();" onchange="set_build_rule()">
         <option value="->">-></option>
         <option value="<>"><></option>
     </select>
-    <select id="dstipallow" name="dstipallow" class="srcipallow-dropdown" onblur="build_rule();" onchange="build_rule(e)">
+    <select id="dstipallow" name="dstipallow" class="srcipallow-dropdown" onblur="set_build_rule();" onchange="set_build_rule()">
         <option value="-----">-----</option>
         <option value="!">!</option>
     </select>
     <lable id="dstiperror"></lable>
-    <input id="dstip" name="dstip" value="any"  onfocusout="checkip('dstip', 'dstiperror')" class="dstip-dropdown" onchange="build_rule()" onblur="build_rule();" />
+    <input id="dstip" name="dstip" value="any"  onfocusout="checkip('dstip', 'dstiperror')" class="dstip-dropdown" onchange="set_build_rule()" onblur="set_build_rule();" />
 
-    <select id="dstportallow" name="dstportallow" class="srcportallow-dropdown" onchange="build_rule()" onblur="build_rule();">
+    <select id="dstportallow" name="dstportallow" class="srcportallow-dropdown" onchange="set_build_rule()" onblur="set_build_rule();">
         <option value="-----">-----</option>
         <option value="!">!</option>
     </select>
     <lable id="dstporterror"></lable>
 
-    <input id="dstport" name="dstport" value="any"  onfocusout="checkport('dstport', 'dstporterror')"  class="dstport-text" onchange="build_rule()" onblur="build_rule();" />
+    <input id="dstport" name="dstport" value="any"  onfocusout="checkport('dstport', 'dstporterror')"  class="dstport-text" onchange="set_build_rule()" onblur="set_build_rule();" />
     <br>
 <div id="ruleform">
 
 
 </div>
-    <img type="image" id="keyword_selection_plus" src="/static/admin/img/icon-addlink.svg" name="add option" onclick="add_option_keyword();" onblur="set_build_rule(e);">
+    <img type="image" id="keyword_selection_plus" src="/static/admin/img/icon-addlink.svg" name="add option" onclick="add_option_keyword();" onblur="set_build_rule();">
 <script>
 
 // Example POST method implementation:
@@ -441,12 +439,28 @@ async function postData(url = '', data = {}) {
 <!-- );-->
 var my_inputs = {};
 function set_content_change(e){
+    if (e === undefined){
+        if (my_inputs[e]!== undefined){
+            clearTimeout(my_inputs[e]);
+        }
+
+        my_inputs[e] = setTimeout(() => { content_change()}, 500);
+        return
+    }
     if (my_inputs[e.target.id]!== undefined){
         clearTimeout(my_inputs[e.target.id]);
     }
     my_inputs[e.target.id] = setTimeout(() => { content_change()}, 500);
 }
 function set_build_rule(e){
+    if (e === undefined){
+        if (my_inputs[e]!== undefined){
+            clearTimeout(my_inputs[e]);
+        }
+
+        my_inputs[e] = setTimeout(() => { build_rule()}, 500);
+        return
+    }
     if (my_inputs[e.target.id]!== undefined){
         clearTimeout(my_inputs[e.target.id]);
     }
@@ -540,12 +554,66 @@ function content_change(){
     );
  };
 var id_content = document.getElementById("id_content");
+
+if (document.getElementsByClassName("objectaction-item")[0] !== undefined){
+    document.getElementsByClassName("objectaction-item")[0].onclick=function(){
+            var copy_id_content = document.getElementById("id_content");
+            sessionStorage.setItem("snort_content", copy_id_content.value);
+            sessionStorage.setItem("snort_description", document.getElementById("id_description").value);
+            sessionStorage.setItem("snort_name", document.getElementById("id_name").value);
+            sessionStorage.setItem("snort_treatment", document.getElementById("id_treatment").value);
+            sessionStorage.setItem("snort_document", document.getElementById("id_document").value);
+            };
+}
+
+function get_clone_rule(){
+    id_content.value = sessionStorage.getItem("snort_content")
+    while (document.getElementById("id_description")== undefined){
+        setTimeout(() => { get_clone_rule();}, 100)
+        return;
+    }
+    document.getElementById("id_description").value = sessionStorage.getItem("snort_description");
+    while (document.getElementById("id_name")== undefined){
+        setTimeout(() => { get_clone_rule();}, 100)
+        return;
+    }
+    document.getElementById("id_name").value = sessionStorage.getItem("snort_name");
+    while (document.getElementById("id_treatment")== undefined){
+        setTimeout(() => { get_clone_rule();}, 100)
+        return;
+    }
+    document.getElementById("id_treatment").value = sessionStorage.getItem("snort_treatment");
+    while (document.getElementById("id_document")== undefined){
+        setTimeout(() => { get_clone_rule();}, 100)
+        return;
+    }
+    document.getElementById("id_document").value = sessionStorage.getItem("snort_document");
+
+    sessionStorage.removeItem("snort_content");
+    sessionStorage.removeItem("snort_name");
+    sessionStorage.removeItem("snort_treatment");
+    sessionStorage.removeItem("snort_document");
+}
+
 id_content.onblur = function(e){
   set_content_change(e)
 };
 id_content.oninput = function(e){
   set_content_change(e)
 };
-setTimeout(() => { build_rule();}, 1000)
+if (sessionStorage.getItem("snort_content")){
+   get_clone_rule()
+ } {% block cloned_rule %} {% if cloned_rule %}
+else if (true){
+    sessionStorage.setItem("snort_content", "{{ rule_conetnt  |safe }}");
+    sessionStorage.setItem("snort_description", "{{ rule_description   |safe}}");
+    sessionStorage.setItem("snort_name", "{{ rule_name  |safe}}");
+    sessionStorage.setItem("snort_treatment", "{{ rule_treatment  |safe}}");
+    sessionStorage.setItem("snort_document", "{{  rule_document |safe }}");
+    get_clone_rule()
+}{% endif %}{% endblock %}
+else{
+    setTimeout(() => { build_rule();}, 1000)
+}
 
 </script>
