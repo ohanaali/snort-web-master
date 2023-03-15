@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='snort_web_master',
-    version='0.2.1.0',
+    version='0.2.1.1',
     license='MoCorp',
     readme="README.md",
     author="meir dahan",
@@ -27,3 +27,9 @@ setup(
       ],
 
 )
+
+"""git add .
+git commit -m "updatas"
+git push
+py setup.py sdist
+py -m twine upload dist/*"""
