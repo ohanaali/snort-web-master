@@ -4,7 +4,7 @@ import csv
 import time
 from io import StringIO
 from django.contrib import messages
-from functools import partial
+import re
 from import_export.admin import ImportExportModelAdmin
 from django import forms
 from .models import SnortRule, SnortRuleViewArray, save_rule_to_s3, delete_rule_from_s3
@@ -196,12 +196,23 @@ class SnortRuleAdminForm(forms.ModelForm):
 
     @transaction.atomic
     def clean(self):
+        if self.cleaned_data.get("content"):
+            content = self.cleaned_data.get("content")
+        elif self.data.get("content"):
+            content = self.data.get("content")
+        else:
+            content = self.instance.content
         try:
-            self.instance.user = self.clean_user()
+            self.cleaned_data["user"] = self.instance.user = self.clean_user()
+            regex = r"employee '\w+',"
+            subst = rf"employee '{self.cleaned_data['user']}',"
+            content = re.sub(regex, subst, content, 0, re.MULTILINE)
+            if "user" not in self.changed_data:
+                self.changed_data.append("user")
         except Exception as e:
             self.add_error("user", e)
         try:
-            self.instance.content = self.clean_content()
+            self.clean_content()
         except Exception as e:
             if not self.errors:
                 self.add_error("content", e)
@@ -210,7 +221,13 @@ class SnortRuleAdminForm(forms.ModelForm):
         self.instance.deleted = False
         if not self.instance.pk and not self.errors:
             self.instance.save()
-        # SnortRuleViewArray.objects.filter(snortId=None).delete()
+            # set sid in content for the new rule
+            if "sid:-;" in content:
+                self.cleaned_data["content"] = content.replace("sid:-;", f"sid:{self.instance.pk};")
+                if "content" not in self.changed_data:
+                    self.changed_data.append("content")
+        else:
+            self.cleaned_data["content"] = content
         if not self.errors:
             SnortRuleViewArray.objects.filter(snortId=self.instance.id).delete()
         for key, value in self.data.items():
@@ -467,7 +484,7 @@ class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, ImportExpor
         for rule in queryset:
             self.request = request
             self.request.session["cloned_rule"] = {"cloned_rule": True,
-                           "rule_conetnt": rule.content,
+                           "rule_conetnt": rule.content.replace('"', "'"),
                            "rule_description": rule.description,
                            "rule_name": rule.name,
                            "rule_treatment": rule.treatment,
@@ -520,7 +537,7 @@ class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, ImportExpor
             cache.set(obj.id, [])
         context = {}
         context["build_items"] = set_rule
-        context["actions"] = keywords.objects.filter(stage="action", avalable="True"),
+        context["actions"] = keywords.objects.filter(stage="action", avalable="True")
         context["protocols"] = keywords.objects.filter(stage="protocol", avalable="True")
 
         tmp_context = copy.deepcopy(self.request.session.get("cloned_rule", {}))

@@ -467,9 +467,24 @@ function set_build_rule(e){
     my_inputs[e.target.id] = setTimeout(() => { build_rule()}, 500);
 }
 
-   var id_content = document.getElementById("id_content");
-postData("/build_rule/keyword_to_rule", {"fule_rule": id_content.textContent})
- .then((data) =>
+function set_up(){
+    if (sessionStorage.getItem("snort_content")){
+       get_clone_rule()
+     } {% block cloned_rule %} {% if cloned_rule %}
+    else if (true){
+        sessionStorage.setItem("snort_content", "{{ rule_conetnt  |safe }}");
+        sessionStorage.setItem("snort_description", "{{ rule_description   |safe}}");
+        sessionStorage.setItem("snort_name", "{{ rule_name  |safe}}");
+        sessionStorage.setItem("snort_treatment", "{{ rule_treatment  |safe}}");
+        sessionStorage.setItem("snort_document", "{{  rule_document |safe }}");
+        get_clone_rule()
+    }{% endif %}{% endblock %}
+    else{
+        setTimeout(() => { build_rule();}, 1000)
+    }
+}
+var id_content = document.getElementById("id_content");
+postData("/build_rule/keyword_to_rule", {"fule_rule": id_content.textContent}).then((data) =>
 {
     var res_data_post = data
     for (const els of data.data){
@@ -511,9 +526,19 @@ postData("/build_rule/keyword_to_rule", {"fule_rule": id_content.textContent})
     document.getElementById("id_document").onblur = function(e){
             set_build_rule(e)
         };
+    set_up();
 }
  );
 
+function set_value(value, field){
+    var c = document.getElementById(field).onchange
+    var b = document.getElementById(field).onblur
+    document.getElementById(field).onchange = undefined
+    document.getElementById(field).onblur = undefined
+    document.getElementById(field).value = value.trim("'")
+    document.getElementById(field).onchange = c
+    document.getElementById(field).onblur = b
+}
 
 function content_change(){
    var id_content = document.getElementById("id_content");
@@ -522,21 +547,26 @@ function content_change(){
     {
         var res_data_post = data
         for (const els of data.data){
-            selectElementManual(els.htmlId, els.value, els.typeOfItem, els.locationX, els.locationY);
+            selectElementManual(els.htmlId, els.value.trim("'"), els.typeOfItem, els.locationX, els.locationY);
         };
         if (data.metadata_description !== undefined){
-            document.getElementById("id_description").value = data.metadata_description.trim("'")
+            set_value(data.metadata_description,"id_description")
         };
         if (data.metadata_document !== undefined){
-            document.getElementById("id_document").value = data.metadata_document.trim("'")
+            set_value(data.metadata_document,"id_document")
         };
         if (data.metadata_treatment !== undefined){
-            document.getElementById("id_treatment").value = data.metadata_treatment.trim("'")
+            set_value(data.metadata_treatment,"id_treatment")
         };
         if (data.metadata_name !== undefined){
-            document.getElementById("id_name").value = data.metadata_name.trim("'")
+            set_value(data.metadata_name,"id_name")
         };
         if (data.metadata_group !== undefined){
+            var c = document.getElementById("id_group").onchange
+            var b = document.getElementById("id_group").onblur
+            document.getElementById("id_group").onchange = undefined
+            document.getElementById("id_group").onblur = undefined
+
             var group_select = document.getElementById("id_group")
             for (instance_number = 0; instance_number < group_select.length; instance_number++){
                 if (group_select.options[instance_number].text === data.metadata_group){
@@ -548,6 +578,8 @@ function content_change(){
                     break;
                 }
             }
+            document.getElementById("id_group").onchange = c
+            document.getElementById("id_group").onblur = b
         }
 
     }
@@ -568,26 +600,27 @@ if (document.getElementsByClassName("objectaction-item")[0] !== undefined){
 
 function get_clone_rule(){
     id_content.value = sessionStorage.getItem("snort_content")
+    set_content_change()
     while (document.getElementById("id_description")== undefined){
         setTimeout(() => { get_clone_rule();}, 100)
         return;
     }
-    document.getElementById("id_description").value = sessionStorage.getItem("snort_description");
+    document.getElementById("id_description").value = sessionStorage.getItem("snort_description").trim("'").trim("'");
     while (document.getElementById("id_name")== undefined){
         setTimeout(() => { get_clone_rule();}, 100)
         return;
     }
-    document.getElementById("id_name").value = sessionStorage.getItem("snort_name");
+    document.getElementById("id_name").value = sessionStorage.getItem("snort_name").trim("'").trim("'");
     while (document.getElementById("id_treatment")== undefined){
         setTimeout(() => { get_clone_rule();}, 100)
         return;
     }
-    document.getElementById("id_treatment").value = sessionStorage.getItem("snort_treatment");
+    document.getElementById("id_treatment").value = sessionStorage.getItem("snort_treatment").trim("'").trim("'");
     while (document.getElementById("id_document")== undefined){
         setTimeout(() => { get_clone_rule();}, 100)
         return;
     }
-    document.getElementById("id_document").value = sessionStorage.getItem("snort_document");
+    document.getElementById("id_document").value = sessionStorage.getItem("snort_document").trim("'").trim("'");
 
     sessionStorage.removeItem("snort_content");
     sessionStorage.removeItem("snort_name");
@@ -601,19 +634,5 @@ id_content.onblur = function(e){
 id_content.oninput = function(e){
   set_content_change(e)
 };
-if (sessionStorage.getItem("snort_content")){
-   get_clone_rule()
- } {% block cloned_rule %} {% if cloned_rule %}
-else if (true){
-    sessionStorage.setItem("snort_content", "{{ rule_conetnt  |safe }}");
-    sessionStorage.setItem("snort_description", "{{ rule_description   |safe}}");
-    sessionStorage.setItem("snort_name", "{{ rule_name  |safe}}");
-    sessionStorage.setItem("snort_treatment", "{{ rule_treatment  |safe}}");
-    sessionStorage.setItem("snort_document", "{{  rule_document |safe }}");
-    get_clone_rule()
-}{% endif %}{% endblock %}
-else{
-    setTimeout(() => { build_rule();}, 1000)
-}
 
 </script>

@@ -72,7 +72,7 @@ def build_keyword_dict(resppnse, rule_parsed):
             for item in op.value.data:
                 for meta_value in ["group ", "name ", "treatment ", "document ", "description "]:
                     if item.strip("'").strip().startswith(meta_value):
-                        resppnse["metadata_" + meta_value.strip()] = item.strip("'").strip().replace(meta_value, "")
+                        resppnse["metadata_" + meta_value.strip()] = item.replace(meta_value, "").strip("'").strip()
             continue
         rule_keywordss.append(build_keyword_item("keyword_selection" + str(op_num), op.name, x=op_num, y=0))
 
@@ -83,7 +83,7 @@ def build_keyword_dict(resppnse, rule_parsed):
                                        item_type="input"))
                 op.value = op.value[1:]
             rule_keywordss.append(
-                build_keyword_item(f"keyword_selection{str(op_num)}" + "-data", op.value.strip('"'), x=op_num, y=0,
+                build_keyword_item(f"keyword_selection{str(op_num)}" + "-data", op.value.strip('"').strip("'"), x=op_num, y=0,
                                    item_type="input"))
         op_num += 1
         i += 1
