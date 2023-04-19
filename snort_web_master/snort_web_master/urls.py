@@ -19,7 +19,8 @@ from django.shortcuts import redirect
 from snort.views import get_rule, get_rule_keys, build_rule_keyword_to_rule, build_rule_rule_to_keywords, favico,get_current_user_name
 from django.conf import settings
 from django.conf.urls.static import static
-
+import django.contrib.auth.admin
+django.contrib.auth.admin.UserAdmin.readonly_fields= ("last_login", 'date_joined')
 admin.site.site_header = 'snort web master'
 app_name = "snort_web_master"
 urlpatterns = [

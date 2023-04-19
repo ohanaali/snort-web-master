@@ -58,7 +58,7 @@ FILTER_FIELDS = ("active", "is_template", "deleted", "admin_locked")
 ADVANCE_FILTER_FIELDS = tuple(i for i in BASE_FIELDS + ["content", ("pcap_sanity_check__name", "pcap_sanity_check_name"), ("pcap_legal_check__name", "pcap_legal_check_name"),("group_name", "group_name")])
 FIELDS = [
     "id", "content", "active", "is_template", "deleted", "admin_locked", 'name', "document", "treatment", "snort_builder", "description",
-    "group", "extra", "rule_validation_section",'pcap_sanity_check', "pcap_legal_check", ]
+    "extra",'pcap_sanity_check', "pcap_legal_check", ]
 SEARCH_FIELDS = tuple(i for i in BASE_FIELDS + ["content", "pcap_sanity_check__name", "pcap_legal_check__name", "group__name"])
 BASE_BUILDER_KEY = ("action", "protocol", "srcipallow", "srcip", "srcportallow", "srcport", "direction", "dstipallow",
                     "dstportallow", "dstport")
@@ -325,16 +325,23 @@ class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, ImportExpor
     advanced_filter_fields = ADVANCE_FILTER_FIELDS
     change_actions = ('clone_rule',)
     # changelist_actions = ('load_template',)
-    fields = FIELDS
+
+    FIELDS_GROUP = FIELDS
+    rule_validation_fields = ("pcap_sanity_check", "pcap_legal_check")
+    for field in rule_validation_fields:
+        if field in FIELDS_GROUP:
+            FIELDS_GROUP.remove(field)
+    fieldsets = (
+        (None, {"fields": FIELDS_GROUP}),
+        ("attackers", {"fields": ("group",)}),
+        ("Rule validation", {"fields": rule_validation_fields}),
+    )
     filter_horizontal = ('pcap_sanity_check', "pcap_legal_check")
     list_display_links = ("id", "user", "name", "content", "description")
     list_display = ("id", "user", "active", "name", "group", "description", "content", "date", "is_template", "deleted")
     search_fields = SEARCH_FIELDS
     form = SnortRuleAdminForm
     actions = ['make_published', "make_delete", "make_clone"]
-
-    def rule_validation_section(self, request):
-        return mark_safe('<hr style="height:3px;width:100%;border-width:100%;color:green;background-color:green"/>')
 
     def export_action(self, request):
         return self.export_data(SnortRule.objects.all())
@@ -571,12 +578,11 @@ class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, ImportExpor
     def get_readonly_fields(self, request, obj=None):
         if obj and (obj.is_template or obj.admin_locked):
             read_only_fields = (
-            "id", "active", "admin_locked", "snort_builder", "deleted", "rule_validation_section",)
+            "id", "active", "admin_locked", "snort_builder", "deleted",)
         else:
-            read_only_fields = ("id", "admin_locked", "snort_builder", "deleted", "rule_validation_section")
+            read_only_fields = ("id", "admin_locked", "snort_builder", "deleted")
 
         return read_only_fields
 
     # readonly_fields = ("id", "user", "admin_locked", "full_rule", "snort_builder", "deleted")
     clone_rule.short_description = "clone rule to a new rule"  # optional
-
