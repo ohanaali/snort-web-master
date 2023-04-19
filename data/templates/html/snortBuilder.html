@@ -514,6 +514,12 @@ postData("/build_rule/keyword_to_rule", {"fule_rule": id_content.textContent}).t
     document.getElementById("id_group").onblur = function(e){
             set_build_rule(e)
         };
+    document.getElementById("id_tag").onchange = function(e){
+            set_build_rule(e)
+        };
+    document.getElementById("id_tag").onblur = function(e){
+            set_build_rule(e)
+        };
     document.getElementById("id_treatment").oninput = function(e){
             set_build_rule(e)
         };
@@ -635,8 +641,11 @@ id_content.oninput = function(e){
   set_content_change(e)
 };
 setTimeout(() => {
-if (document.getElementsByClassName("errorlist").length > 0){
-    document.getElementsByClassName("errorlist")[0].parentElement.scrollIntoView()
-};}, 200)
+    var field_user = document.getElementsByClassName("form-row field-user")[0];
+    field_user.style.display = "None";
+
+    if (document.getElementsByClassName("errorlist").length > 0){
+        document.getElementsByClassName("errorlist")[0].parentElement.scrollIntoView()
+    };}, 200)
 
 </script>

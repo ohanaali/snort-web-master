@@ -53,12 +53,12 @@ class StoreAdminForm(forms.ModelForm):
 
 BASE_FIELDS = [
     "id", "active", "is_template", "deleted", "admin_locked", 'name', "document", "treatment", "description",
-    "extra"]
+    "extra", "user"]
 FILTER_FIELDS = ("active", "is_template", "deleted", "admin_locked")
 ADVANCE_FILTER_FIELDS = tuple(i for i in BASE_FIELDS + ["content", ("pcap_sanity_check__name", "pcap_sanity_check_name"), ("pcap_legal_check__name", "pcap_legal_check_name"),("group_name", "group_name")])
 FIELDS = [
-    "id", "content", "active", "is_template", "deleted", "admin_locked", 'name', "document", "treatment", "snort_builder", "description",
-    "extra",'pcap_sanity_check', "pcap_legal_check", ]
+    "id", "content", "active", "is_template", "deleted", "admin_locked", "tag",'name', "document", "treatment", "snort_builder", "description",
+    "extra", "user", 'pcap_sanity_check', "pcap_legal_check"]
 SEARCH_FIELDS = tuple(i for i in BASE_FIELDS + ["content", "pcap_sanity_check__name", "pcap_legal_check__name", "group__name"])
 BASE_BUILDER_KEY = ("action", "protocol", "srcipallow", "srcip", "srcportallow", "srcport", "direction", "dstipallow",
                     "dstportallow", "dstport")
@@ -578,9 +578,9 @@ class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, ImportExpor
     def get_readonly_fields(self, request, obj=None):
         if obj and (obj.is_template or obj.admin_locked):
             read_only_fields = (
-            "id", "active", "admin_locked", "snort_builder", "deleted",)
+            "id", "active", "user", "admin_locked", "snort_builder", "deleted", "rule_validation_section",)
         else:
-            read_only_fields = ("id", "admin_locked", "snort_builder", "deleted")
+            read_only_fields = ("id", "user", "admin_locked", "snort_builder", "deleted", "rule_validation_section")
 
         return read_only_fields
 

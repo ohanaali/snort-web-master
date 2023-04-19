@@ -14,7 +14,7 @@
   function build_rule() {
   var sigid = document.getElementsByClassName("form-row field-id")[0].innerText.split("\n")[1];
   try{
-        var user_name = document.getElementsByClassName("form-row field-user")[0].innerText.split("\n")[1];
+        var user_name = document.getElementsByClassName("form-row field-user")[0].innerText.trim().split(":")[1].trim();
    }
    catch (e){
         setTimeout(() => { build_rule();}, 1000)
@@ -44,6 +44,10 @@
   var id_document  = document.getElementById("id_document").value;
   var id_treatment = document.getElementById("id_treatment").value;
   var id_description = document.getElementById("id_description").value;
+  var id_tag = ""
+  if (document.getElementById("id_tag").checked === true) {
+  var id_tag = " tag:session,10,packets;"
+  }
   content = "";
   current_content = "";
   prev = null;
@@ -124,6 +128,6 @@
     srcport + " " + direction + " " + dstipallow + dstip + " " + dstportallow + dstport
      + "(msg:" + group + " " + name+ ";" + content+ "sid:" +sigid +"; metadata: employee '"+
      user_name + "', group '" + group + "', name '" + name + "', treatment '" + id_treatment +
-      "', keywords 'None', date '"+date_now+"', document '" + id_document + "',description '"+id_description+"';)";
+      "', keywords 'None', date '"+date_now+"', document '" + id_document + "',description '"+id_description+"'; "+id_tag+")";
 };
 </script>

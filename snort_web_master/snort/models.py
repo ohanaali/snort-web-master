@@ -22,6 +22,7 @@ class SnortRule(models.Model):
     pcap_legal_check = models.ManyToManyField("pcaps.white_Pcap", related_name='pcap_legal_check', blank=True)
     objects = models.Manager()
     deleted = models.BooleanField(default=False)
+    tag = models.BooleanField(default=True, help_text="add 'tag:session,10,packets' to rule")
 
     def delete(self):
         self.active = False
