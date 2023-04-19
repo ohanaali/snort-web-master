@@ -155,7 +155,6 @@ class SnortRuleAdminForm(forms.ModelForm):
         cur_rule = SnortRule()
         cur_rule.content = self.data.get("content")
         cur_rule.location = self.data.get("location")
-        cur_rule.group = self.data.get("group")
         cur_rule.id = self.data.get("id")
         cur_rule.treatment = self.data.get("treatment")
         cur_rule.name = self.data.get("name")
@@ -293,12 +292,17 @@ def validate_pcap_snort(pcaps, rule):
     failed = True
     for pcap in pcaps:
         try:
-            if not verify_legal_pcap("/app/{pcap.pcap_file}"):
+            base = "/app/"
+            if os.name =="nt":
+                from django.conf import settings as s
+                base = str(s.BASE_DIR) + "/"
+
+            if not verify_legal_pcap(f"{base}{pcap.pcap_file}"):
                 raise Exception(f"illegal pcap file")
-            if not os.path.exists(f"/app/{pcap.pcap_file}"):
-                raise Exception(f"cant find file /app/{pcap.pcap_file}")
+            if not os.path.exists(f"{base}{pcap.pcap_file}"):
+                raise Exception(f"cant find file {base}{pcap.pcap_file}")
             stdout, stderr = subprocess.Popen(
-                ["/home/snorty/snort3/bin/snort", "-R", rule.location + ".tmp", "-r", f"/app/{pcap.pcap_file}", "-A",
+                ["/home/snorty/snort3/bin/snort", "-R", rule.location + ".tmp", "-r", f"{base}{pcap.pcap_file}", "-A",
                  "fast"], stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE).communicate()
             if stdout and not stderr:
@@ -307,7 +311,7 @@ def validate_pcap_snort(pcaps, rule):
                 else:
                     return 0
         except Exception as e:
-            raise forms.ValidationError(f"could not validate rule on {pcap.pcap_file}: {e}", code=405)
+            raise forms.ValidationError(f"could not validate rule on {base}{pcap.pcap_file}: {e}", code=405)
     if failed:
         raise Exception("no rules was chosen")
     return stdout
