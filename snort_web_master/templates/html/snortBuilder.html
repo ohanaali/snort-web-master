@@ -36,7 +36,7 @@ function checkport(check, err) {
 
 <script>
     function load_protocol(){
-const url_protocol="/settings/keywords/?stage=protocol&avalable=True";
+const url_protocol="/settings/keyword/?stage=protocol&available=True";
   const Http = new XMLHttpRequest();
 Http.open("GET", url_protocol);
 Http.responseType = "document";
@@ -111,7 +111,7 @@ function add_text_box_if_needed(input_id, selection, current_index_i, item_index
         });
         plus_dict[input_id] = []
     }
-    const url_content_modifiers="/settings/keywords/?name=" + selection;
+    const url_content_modifiers="/settings/keyword/?name=" + selection;
     const Http = new XMLHttpRequest();
     selected_keyword = document.getElementById("keyword_selection" + current_index_i)
     selected_keyword_text = selected_keyword.options[selected_keyword.selectedIndex].text
@@ -221,7 +221,7 @@ function add_option_keyword(manual=false, input_id="", x=-1, y=-1, selected_valu
         }
     }
     j[my_i] = 0
-    const url_modifiers="/settings/keywords/?stage={selected_keyword_text} Modifiers&avalable=True";
+    const url_modifiers="/settings/keyword/?stage={selected_keyword_text} Modifiers&available=True";
 
     var input_id3 = "keyword";
     var rule_form = document.getElementById("ruleform");
@@ -250,7 +250,7 @@ function add_option_keyword(manual=false, input_id="", x=-1, y=-1, selected_valu
     input.onblur= function(){setTimeout(() => { build_rule();}, 50);};
     input.appendChild(opt);
     //get option values
-    const url_options="/settings/keywords/?stage=options&avalable=True";
+    const url_options="/settings/keyword/?stage=options&available=True";
 
     // add not operation
     add_options_new_keyword(url_options, input_id, null, null, null)

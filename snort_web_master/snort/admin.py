@@ -20,7 +20,7 @@ from snort.views import build_keyword_dict
 from django.contrib import admin
 from django_object_actions import DjangoObjectActions
 import subprocess
-from settings.models import Setting, keywords, attackGroup
+from settings.models import Setting, keyword, attackGroup
 from django.shortcuts import render
 from pcaps.admin import verify_legal_pcap
 from advanced_filters.admin import AdminAdvancedFiltersMixin
@@ -86,7 +86,7 @@ class SnortRuleAdminForm(forms.ModelForm):
             options = parser.parse_options()
             for option in options:
                 try:
-                    if keywords.objects.get(name=options[option][0]):
+                    if keyword.objects.get(name=options[option][0]):
                         break
                 except:
                     pass
@@ -537,8 +537,8 @@ class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, ImportExpor
             cache.set(obj.id, [])
         context = {}
         context["build_items"] = set_rule
-        context["actions"] = keywords.objects.filter(stage="action", avalable="True")
-        context["protocols"] = keywords.objects.filter(stage="protocol", avalable="True")
+        context["actions"] = keyword.objects.filter(stage="action", available="True")
+        context["protocols"] = keyword.objects.filter(stage="protocol", available="True")
 
         tmp_context = copy.deepcopy(self.request.session.get("cloned_rule", {}))
         self.request.session["cloned_rule"] = {}
