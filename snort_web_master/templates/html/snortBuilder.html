@@ -634,5 +634,9 @@ id_content.onblur = function(e){
 id_content.oninput = function(e){
   set_content_change(e)
 };
+setTimeout(() => {
+if (document.getElementsByClassName("errorlist").length > 0){
+    document.getElementsByClassName("errorlist")[0].parentElement.scrollIntoView()
+};}, 200)
 
 </script>

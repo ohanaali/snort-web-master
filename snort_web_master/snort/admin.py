@@ -53,12 +53,12 @@ class StoreAdminForm(forms.ModelForm):
 
 BASE_FIELDS = [
     "id", "active", "is_template", "deleted", "admin_locked", 'name', "document", "treatment", "description",
-    "extra", "user"]
+    "extra"]
 FILTER_FIELDS = ("active", "is_template", "deleted", "admin_locked")
 ADVANCE_FILTER_FIELDS = tuple(i for i in BASE_FIELDS + ["content", ("pcap_sanity_check__name", "pcap_sanity_check_name"), ("pcap_legal_check__name", "pcap_legal_check_name"),("group_name", "group_name")])
 FIELDS = [
     "id", "content", "active", "is_template", "deleted", "admin_locked", 'name', "document", "treatment", "snort_builder", "description",
-    "group", "extra", "user", "rule_validation_section",'pcap_sanity_check', "pcap_legal_check", ]
+    "group", "extra", "rule_validation_section",'pcap_sanity_check', "pcap_legal_check", ]
 SEARCH_FIELDS = tuple(i for i in BASE_FIELDS + ["content", "pcap_sanity_check__name", "pcap_legal_check__name", "group__name"])
 BASE_BUILDER_KEY = ("action", "protocol", "srcipallow", "srcip", "srcportallow", "srcport", "direction", "dstipallow",
                     "dstportallow", "dstport")
@@ -555,6 +555,11 @@ class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, ImportExpor
         self.request = request
         form.base_fields["pcap_sanity_check"].help_text = "Hold down “Control” to select more than one."
         form.base_fields["pcap_legal_check"].help_text = "Hold down “Control” to select more than one."
+        atkgroup = form.base_fields["group"]
+        atkgroup.widget.can_add_related = Setting.objects.get_or_create(**{"name": "atkgroup_can_add_related"})[0].value == "True"
+        atkgroup.widget.can_change_related = Setting.objects.get_or_create(**{"name": "atkgroup_can_change_related"})[0].value == "True"
+        atkgroup.widget.can_delete_related = Setting.objects.get_or_create(**{"name": "atkgroup_can_delete_related"})[0].value == "True"
+        atkgroup.widget.can_view_related = Setting.objects.get_or_create(**{"name": "atkgroup_can_view_related"})[0].value == "True"
         return form
 
     @transaction.atomic
@@ -566,9 +571,9 @@ class SnortRuleAdmin(DjangoObjectActions, AdminAdvancedFiltersMixin, ImportExpor
     def get_readonly_fields(self, request, obj=None):
         if obj and (obj.is_template or obj.admin_locked):
             read_only_fields = (
-            "id", "active", "user", "admin_locked", "snort_builder", "deleted", "rule_validation_section",)
+            "id", "active", "admin_locked", "snort_builder", "deleted", "rule_validation_section",)
         else:
-            read_only_fields = ("id", "user", "admin_locked", "snort_builder", "deleted", "rule_validation_section")
+            read_only_fields = ("id", "admin_locked", "snort_builder", "deleted", "rule_validation_section")
 
         return read_only_fields
 
