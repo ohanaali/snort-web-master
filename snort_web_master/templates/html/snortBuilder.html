@@ -129,11 +129,18 @@ function add_text_box_if_needed(input_id, selection, current_index_i, item_index
                     newElem.onchange = function(){setTimeout(() => { build_rule();}, 50);};
                     newElem.oninput = function(){setTimeout(() => { build_rule();}, 50);};
                     newElem.name = newElem.id = input_id + "-data"
+                    if ((splited.toLowerCase() === "int")||(splited.toLowerCase() === "integer")){
+                            newElem.type = "number"
+                            newElem.step = 1
+                        }
+                        if (splited.toLowerCase() === "number"){
+                            newElem.type = "number"
+                        }
                     input.insertAdjacentElement("afterend", newElem);
                     if (plus_dict[input_id] === undefined){
                         plus_dict[current_index_i].push(newElem);
                         plus_dict[current_index_i][0].style.visibility = "visible";
-                        if (splited === "string"){
+                        if (splited.toLowerCase() === "string"){
                             input.style.visibility = "visible";
                         }
                         else
