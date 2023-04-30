@@ -136,6 +136,8 @@ class SnortRuleAdminForm(forms.ModelForm):
         cur_rule.document = self.data.get("document")
 
         validate_pcap_snort(self.cleaned_data.get("pcap_sanity_check"), cur_rule)
+        if int(count) > 0:
+            raise form.ValidationError(f"rule matched {count} times on pcap")
         return self.cleaned_data["pcap_sanity_check"]
 
     # only admin can activate admin locked rule
@@ -306,6 +308,7 @@ def validate_pcap_snort(pcaps, rule):
                  "fast"], stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE).communicate()
             if stdout and not stderr:
+                failed = False
                 if b"total_alerts: " in stdout:
                     return stdout.split(b"total_alerts: ")[1].split(b"\n")[0]
                 else:
@@ -313,7 +316,7 @@ def validate_pcap_snort(pcaps, rule):
         except Exception as e:
             raise forms.ValidationError(f"could not validate rule on {base}{pcap.pcap_file}: {e}", code=405)
     if failed:
-        raise Exception("no rules was chosen")
+        raise Exception(f"{e}" or "no rules was chosen")
     return stdout
 
 

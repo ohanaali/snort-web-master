@@ -64,6 +64,9 @@ def build_keyword_dict(resppnse, rule_parsed):
     i = 0
     op_num = 0
     for op in rule_parsed.options:
+        if op.name == "tag":
+            if op.value == "session,10,packets":
+                continue
         if op.name in ["msg", "sid"]:
             resppnse[op.name] = op.value
             i += 1

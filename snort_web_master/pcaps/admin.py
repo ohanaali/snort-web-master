@@ -66,13 +66,15 @@ class SnortRuleAdmin(admin.ModelAdmin):
 def verify_legal_pcap(filename):
     import dpkt
     counter = 0
+    try:
+        for ts, pkt in dpkt.pcap.Reader(open(filename, 'br')):
 
-    for ts, pkt in dpkt.pcap.Reader(open(filename, 'br')):
-
-        counter += 1
-        eth = dpkt.ethernet.Ethernet(pkt)
-        if eth.type != dpkt.ethernet.ETH_TYPE_IP:
-            continue
+            counter += 1
+            eth = dpkt.ethernet.Ethernet(pkt)
+            if eth.type != dpkt.ethernet.ETH_TYPE_IP:
+                continue
+    except dpkt.NeedData as e:
+        return True
 
     if not counter:
         return False
